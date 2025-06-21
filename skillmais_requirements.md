@@ -82,7 +82,7 @@ O Marketplace de Serviços Locais é um produto independente que será desenvolv
 | RF001 | O sistema deve permitir cadastro via usuário/senha | Alta |
 | RF002 | O sistema deve permitir autenticação básica de usuários | Alta |
 | RF003 | O sistema deve permitir cadastro de perfil de contratante com dados básicos (nome, e-mail, telefone) | Alta |
-| RF004 | O sistema deve permitir cadastro de um endereço principal para contratantes | Alta |
+| RF004 | O sistema deve permitir cadastro de endereços para contratantes | Alta |
 | RF005 | O sistema deve permitir cadastro de perfil de prestador com dados básicos | Alta |
 | RF006 | O sistema deve permitir cadastro de preço por tipo de serviço | Alta |
 
