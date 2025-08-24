@@ -113,11 +113,6 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
           builder: (context, params) => AgendarServicoWidget(),
         ),
         FFRoute(
-          name: AgendabackupWidget.routeName,
-          path: AgendabackupWidget.routePath,
-          builder: (context, params) => AgendabackupWidget(),
-        ),
-        FFRoute(
           name: SplashWidget.routeName,
           path: SplashWidget.routePath,
           builder: (context, params) => SplashWidget(),
@@ -136,11 +131,6 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
           name: AvaliarServicoWidget.routeName,
           path: AvaliarServicoWidget.routePath,
           builder: (context, params) => AvaliarServicoWidget(),
-        ),
-        FFRoute(
-          name: PerfilPrestadorWidget.routeName,
-          path: PerfilPrestadorWidget.routePath,
-          builder: (context, params) => PerfilPrestadorWidget(),
         ),
         FFRoute(
           name: CadastroClienteWidget.routeName,
@@ -176,11 +166,6 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               ParamType.String,
             ),
           ),
-        ),
-        FFRoute(
-          name: ServicosWidget.routeName,
-          path: ServicosWidget.routePath,
-          builder: (context, params) => ServicosWidget(),
         ),
         FFRoute(
           name: ServicosConcluidosWidget.routeName,
