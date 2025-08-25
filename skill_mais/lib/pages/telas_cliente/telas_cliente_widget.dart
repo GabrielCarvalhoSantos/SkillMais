@@ -41,13 +41,22 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
 
     _model.textFieldTextController ??= TextEditingController();
     _model.textFieldFocusNode ??= FocusNode();
-    _model.switchValue = false;
   }
 
   @override
   void dispose() {
     _model.dispose();
     super.dispose();
+  }
+
+  // ===== Navegação comum para qualquer categoria =====
+  void _onCategoriaTap(String nomeCategoria) {
+    context.pushNamed(
+      Profissionais22Widget.routeName,
+      queryParameters: {
+        'categoriaSelecionada': serializeParam(nomeCategoria, ParamType.String),
+      }.withoutNulls,
+    );
   }
 
   @override
@@ -57,7 +66,6 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
         queryFn: (q) => q.eqOrNull('user_id', currentUserUid),
       ),
       builder: (context, snapshot) {
-        // Loading state
         if (!snapshot.hasData) {
           return Scaffold(
             backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
@@ -127,12 +135,12 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
         Expanded(
           child: Container(
             width: MediaQuery.sizeOf(context).width * 0.9,
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Column(
               mainAxisSize: MainAxisSize.max,
               children: [
                 _buildAgendamentosCard(),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 _buildCategoriasSection(),
               ],
             ),
@@ -145,10 +153,10 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
   Widget _buildWelcomeHeader(UsuariosRow? user) {
     return Container(
       height: 100.0,
-      margin: EdgeInsets.all(16.0),
+      margin: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: FlutterFlowTheme.of(context).secondaryBackground,
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             blurRadius: 4.0,
             color: Color(0x33000000),
@@ -158,7 +166,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
         borderRadius: BorderRadius.circular(20.0),
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Row(
           children: [
             Column(
@@ -167,20 +175,17 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
               children: [
                 Row(
                   children: [
-                    Text(
-                      'Olá, ',
-                      style: FlutterFlowTheme.of(context).bodyMedium,
-                    ),
+                    Text('Olá, ', style: FlutterFlowTheme.of(context).bodyMedium),
                     Text(
                       user?.nome ?? 'Usuário',
-                      style: FlutterFlowTheme.of(context).bodyMedium.override(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: FlutterFlowTheme.of(context)
+                          .bodyMedium
+                          .override(fontWeight: FontWeight.bold),
                     ),
                     Text('!', style: FlutterFlowTheme.of(context).bodyMedium),
                   ],
                 ),
-                SizedBox(height: 4.0),
+                const SizedBox(height: 4.0),
                 Text(
                   'Bem Vindo(a)!',
                   style: FlutterFlowTheme.of(context).bodyMedium.override(
@@ -203,7 +208,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
       height: MediaQuery.sizeOf(context).height * 0.1,
       decoration: BoxDecoration(
         color: FlutterFlowTheme.of(context).secondaryBackground,
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             blurRadius: 4.0,
             color: Color(0x33000000),
@@ -213,14 +218,14 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
         borderRadius: BorderRadius.circular(16.0),
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Row(
           children: [
             Container(
               width: MediaQuery.sizeOf(context).width * 0.15,
               height: MediaQuery.sizeOf(context).height * 0.07,
               decoration: BoxDecoration(
-                color: Color(0xFFBCD4FF),
+                color: const Color(0xFFBCD4FF),
                 borderRadius: BorderRadius.circular(8.0),
               ),
               child: Center(
@@ -234,15 +239,13 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                 ),
               ),
             ),
-            SizedBox(width: 16.0),
+            const SizedBox(width: 16.0),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Agendamentos',
-                  style: FlutterFlowTheme.of(context).bodyMedium,
-                ),
+                Text('Agendamentos',
+                    style: FlutterFlowTheme.of(context).bodyMedium),
                 Text(
                   'Hoje',
                   style: FlutterFlowTheme.of(context).bodyMedium.override(
@@ -272,13 +275,13 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                   fontStyle: FontStyle.italic,
                 ),
           ),
-          SizedBox(height: 16.0),
+          const SizedBox(height: 16.0),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 children: [
                   _buildCategoriaRow(limit: 3),
-                  SizedBox(height: 24.0),
+                  const SizedBox(height: 24.0),
                   _buildCategoriaRowStatic(),
                 ],
               ),
@@ -297,7 +300,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
       ),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
 
         return Row(
@@ -316,7 +319,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
       height: 100.0,
       decoration: BoxDecoration(
         color: FlutterFlowTheme.of(context).secondaryBackground,
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             blurRadius: 4.0,
             color: Color(0x33000000),
@@ -326,17 +329,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: InkWell(
-        onTap: () {
-          context.pushNamed(
-            Profissionais22Widget.routeName,
-            queryParameters: {
-              'categoriaSelecionada': serializeParam(
-                categoria.nome,
-                ParamType.String,
-              ),
-            }.withoutNulls,
-          );
-        },
+        onTap: () => _onCategoriaTap(categoria.nome),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -344,7 +337,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
               width: 50.0,
               height: 50.0,
               decoration: BoxDecoration(
-                color: Color(0x4A6FD071),
+                color: const Color(0x4A6FD071),
                 borderRadius: BorderRadius.circular(8.0),
               ),
               child: ClipRRect(
@@ -355,17 +348,16 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                   height: 200.0,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
-                    return Icon(Icons.category, size: 24.0);
+                    return const Icon(Icons.category, size: 24.0);
                   },
                 ),
               ),
             ),
-            SizedBox(height: 8.0),
+            const SizedBox(height: 8.0),
             Text(
               categoria.nome,
-              style: FlutterFlowTheme.of(context).bodyMedium.override(
-                    fontSize: 13.0,
-                  ),
+              style:
+                  FlutterFlowTheme.of(context).bodyMedium.override(fontSize: 13),
               textAlign: TextAlign.center,
             ),
           ],
@@ -374,6 +366,8 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
     );
   }
 
+  // ================ **ATUALIZADO**: TAB CATEGORIAS ESTÁTICAS ================
+  // Agora todas as 3 de baixo têm o mesmo comportamento de navegação.
   Widget _buildCategoriaRowStatic() {
     return FutureBuilder<List<CategoriasRow>>(
       future: CategoriasTable().queryRows(
@@ -382,49 +376,53 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
       ),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: snapshot.data!.map((categoria) {
-            return Container(
-              width: 105.0,
-              height: 100.0,
-              decoration: BoxDecoration(
-                color: FlutterFlowTheme.of(context).secondaryBackground,
-                boxShadow: [
-                  BoxShadow(
-                    blurRadius: 4.0,
-                    color: Color(0x33000000),
-                    offset: Offset(0.0, 2.0),
-                  ),
-                ],
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 50.0,
-                    height: 50.0,
-                    decoration: BoxDecoration(
-                      color: Color(0xFFE8E2F4),
-                      borderRadius: BorderRadius.circular(8.0),
+            return InkWell(
+              onTap: () => _onCategoriaTap(categoria.nome),
+              borderRadius: BorderRadius.circular(8.0),
+              child: Container(
+                width: 105.0,
+                height: 100.0,
+                decoration: BoxDecoration(
+                  color: FlutterFlowTheme.of(context).secondaryBackground,
+                  boxShadow: const [
+                    BoxShadow(
+                      blurRadius: 4.0,
+                      color: Color(0x33000000),
+                      offset: Offset(0.0, 2.0),
                     ),
-                    child: Icon(
-                      Icons.plumbing,
-                      color: Color(0xFF7A42E4),
-                      size: 24.0,
+                  ],
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 50.0,
+                      height: 50.0,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8E2F4),
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: const Icon(
+                        Icons.plumbing,
+                        color: Color(0xFF7A42E4),
+                        size: 24.0,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 8.0),
-                  Text(
-                    categoria.nome,
-                    style: FlutterFlowTheme.of(context).bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+                    const SizedBox(height: 8.0),
+                    Text(
+                      categoria.nome,
+                      style: FlutterFlowTheme.of(context).bodyMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             );
           }).toList(),
@@ -441,16 +439,14 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
         Expanded(
           child: Container(
             width: MediaQuery.sizeOf(context).width * 0.9,
-            padding: EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
                 _buildSearchField(),
-                SizedBox(height: 16.0),
+                const SizedBox(height: 16.0),
                 _buildRecentSearchesHeader(),
-                SizedBox(height: 8.0),
-                Expanded(
-                  child: _buildRecentSearchesList(),
-                ),
+                const SizedBox(height: 8.0),
+                Expanded(child: _buildRecentSearchesList()),
               ],
             ),
           ),
@@ -462,10 +458,10 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
   Widget _buildSearchHeader() {
     return Container(
       height: 100.0,
-      padding: EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       decoration: BoxDecoration(
         color: FlutterFlowTheme.of(context).secondaryBackground,
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             blurRadius: 4.0,
             color: Color(0x33000000),
@@ -487,12 +483,12 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                       fontStyle: FontStyle.italic,
                     ),
               ),
-              SizedBox(height: 4.0),
+              const SizedBox(height: 4.0),
               Text(
                 'Ache os melhores profissionais',
-                style: FlutterFlowTheme.of(context).bodyMedium.override(
-                      fontStyle: FontStyle.italic,
-                    ),
+                style: FlutterFlowTheme.of(context)
+                    .bodyMedium
+                    .override(fontStyle: FontStyle.italic),
               ),
             ],
           ),
@@ -510,40 +506,30 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
       decoration: InputDecoration(
         isDense: true,
         hintText: 'Buscar por Categoria..',
-        hintStyle: FlutterFlowTheme.of(context).labelMedium.override(
-              color: Color(0xFF9DA3AD),
-            ),
+        hintStyle:
+            FlutterFlowTheme.of(context).labelMedium.override(color: const Color(0xFF9DA3AD)),
         enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: Color(0xFF9DA3AD),
-            width: 0.5,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF9DA3AD), width: 0.5),
           borderRadius: BorderRadius.circular(100.0),
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
-            color: FlutterFlowTheme.of(context).primary,
-            width: 0.5,
-          ),
+              color: FlutterFlowTheme.of(context).primary, width: 0.5),
           borderRadius: BorderRadius.circular(100.0),
         ),
         errorBorder: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: FlutterFlowTheme.of(context).error,
-            width: 0.5,
-          ),
+          borderSide:
+              BorderSide(color: FlutterFlowTheme.of(context).error, width: 0.5),
           borderRadius: BorderRadius.circular(100.0),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: FlutterFlowTheme.of(context).error,
-            width: 0.5,
-          ),
+          borderSide:
+              BorderSide(color: FlutterFlowTheme.of(context).error, width: 0.5),
           borderRadius: BorderRadius.circular(100.0),
         ),
         filled: true,
         fillColor: FlutterFlowTheme.of(context).secondaryBackground,
-        prefixIcon: Icon(Icons.search),
+        prefixIcon: const Icon(Icons.search),
       ),
       style: FlutterFlowTheme.of(context).bodyMedium,
       cursorColor: FlutterFlowTheme.of(context).primaryText,
@@ -581,10 +567,10 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
         return Container(
           width: double.infinity,
           height: MediaQuery.sizeOf(context).height * 0.07,
-          margin: EdgeInsets.only(bottom: 16.0),
+          margin: const EdgeInsets.only(bottom: 16.0),
           decoration: BoxDecoration(
             color: FlutterFlowTheme.of(context).secondaryBackground,
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 blurRadius: 4.0,
                 color: Color(0x33000000),
@@ -594,15 +580,12 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
             borderRadius: BorderRadius.circular(10.0),
           ),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
               children: [
-                Icon(
-                  Icons.search_sharp,
-                  color: FlutterFlowTheme.of(context).primaryText,
-                  size: 24.0,
-                ),
-                SizedBox(width: 16.0),
+                Icon(Icons.search_sharp,
+                    color: FlutterFlowTheme.of(context).primaryText, size: 24.0),
+                const SizedBox(width: 16.0),
                 Text(
                   item,
                   style: FlutterFlowTheme.of(context).bodyMedium.override(
@@ -610,12 +593,9 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                         fontWeight: FontWeight.w500,
                       ),
                 ),
-                Spacer(),
-                Icon(
-                  Icons.clear_sharp,
-                  color: FlutterFlowTheme.of(context).primaryText,
-                  size: 24.0,
-                ),
+                const Spacer(),
+                Icon(Icons.clear_sharp,
+                    color: FlutterFlowTheme.of(context).primaryText, size: 24.0),
               ],
             ),
           ),
@@ -632,14 +612,12 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
         Expanded(
           child: Container(
             width: MediaQuery.sizeOf(context).width * 0.9,
-            padding: EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
                 _buildResultsHeader(),
-                SizedBox(height: 20.0),
-                Expanded(
-                  child: _buildAgendamentosList(),
-                ),
+                const SizedBox(height: 20.0),
+                Expanded(child: _buildAgendamentosList()),
               ],
             ),
           ),
@@ -651,10 +629,10 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
   Widget _buildAgendaHeader() {
     return Container(
       height: 100.0,
-      padding: EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       decoration: BoxDecoration(
         color: FlutterFlowTheme.of(context).secondaryBackground,
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             blurRadius: 4.0,
             color: Color(0x33000000),
@@ -686,11 +664,11 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                 fontWeight: FontWeight.bold,
               ),
         ),
-        Spacer(),
+        const Spacer(),
         FlutterFlowDropDown<String>(
           controller: _model.dropDownValueController ??=
               FormFieldController<String>(null),
-          options: ['Próximos', 'Concluídos', 'Cancelados'],
+          options: const ['Próximos', 'Concluídos', 'Cancelados'],
           onChanged: (val) => safeSetState(() => _model.dropDownValue = val),
           width: MediaQuery.sizeOf(context).width * 0.24,
           height: 40.0,
@@ -706,7 +684,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
           borderColor: FlutterFlowTheme.of(context).alternate,
           borderWidth: 2.0,
           borderRadius: 8.0,
-          margin: EdgeInsetsDirectional.fromSTEB(12.0, 0.0, 12.0, 0.0),
+          margin: const EdgeInsetsDirectional.fromSTEB(12.0, 0.0, 12.0, 0.0),
           hidesUnderline: true,
           isOverButton: false,
           isSearchable: false,
@@ -728,10 +706,10 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
             categoria: 'Pintor',
             valor: '80',
             status: 'Agendado',
-            corStatus: Color(0x926078FF),
-            corBorda: Color(0x926078FF),
+            corStatus: const Color(0x926078FF),
+            corBorda: const Color(0x926078FF),
           ),
-          SizedBox(height: 16.0),
+          const SizedBox(height: 16.0),
           _buildAgendamentoCard(
             data: 'Hoje',
             hora: '08:00',
@@ -740,10 +718,10 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
             categoria: 'Pintor',
             valor: '80',
             status: 'Agendado',
-            corStatus: Color(0x926078FF),
-            corBorda: Color(0x926078FF),
+            corStatus: const Color(0x926078FF),
+            corBorda: const Color(0x926078FF),
           ),
-          SizedBox(height: 16.0),
+          const SizedBox(height: 16.0),
           _buildAgendamentoCard(
             data: 'Amanhã',
             hora: '14:00',
@@ -752,7 +730,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
             categoria: 'Eletricista',
             valor: '80',
             status: 'Pendente',
-            corStatus: Color(0xA5FFDC86),
+            corStatus: const Color(0xA5FFDC86),
             corBorda: FlutterFlowTheme.of(context).warning,
           ),
         ],
@@ -775,7 +753,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
       height: MediaQuery.sizeOf(context).height * 0.14,
       decoration: BoxDecoration(
         color: FlutterFlowTheme.of(context).secondaryBackground,
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             blurRadius: 4.0,
             color: Color(0x33000000),
@@ -785,15 +763,11 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
         borderRadius: BorderRadius.circular(16.0),
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Row(
           children: [
-            Container(
-              width: 3.0,
-              height: 80.0,
-              color: corBorda,
-            ),
-            SizedBox(width: 16.0),
+            Container(width: 3.0, height: 80.0, color: corBorda),
+            const SizedBox(width: 16.0),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -804,7 +778,8 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                       Text(
                         data,
                         style: FlutterFlowTheme.of(context).bodyMedium.override(
-                              color: FlutterFlowTheme.of(context).secondaryText,
+                              color:
+                                  FlutterFlowTheme.of(context).secondaryText,
                               fontSize: 12.0,
                             ),
                       ),
@@ -812,20 +787,21 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                           style: FlutterFlowTheme.of(context)
                               .bodyMedium
                               .override(
-                                color:
-                                    FlutterFlowTheme.of(context).secondaryText,
+                                color: FlutterFlowTheme.of(context)
+                                    .secondaryText,
                                 fontSize: 12.0,
                               )),
                       Text(
                         hora,
                         style: FlutterFlowTheme.of(context).bodyMedium.override(
-                              color: FlutterFlowTheme.of(context).secondaryText,
+                              color:
+                                  FlutterFlowTheme.of(context).secondaryText,
                               fontSize: 12.0,
                             ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 4.0),
+                  const SizedBox(height: 4.0),
                   Text(
                     titulo,
                     style: FlutterFlowTheme.of(context).bodyMedium.override(
@@ -834,13 +810,14 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                           fontStyle: FontStyle.italic,
                         ),
                   ),
-                  SizedBox(height: 4.0),
+                  const SizedBox(height: 4.0),
                   Row(
                     children: [
                       Text(
                         prestador,
                         style: FlutterFlowTheme.of(context).bodyMedium.override(
-                              color: FlutterFlowTheme.of(context).secondaryText,
+                              color:
+                                  FlutterFlowTheme.of(context).secondaryText,
                               fontSize: 12.0,
                             ),
                       ),
@@ -848,20 +825,21 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                           style: FlutterFlowTheme.of(context)
                               .bodyMedium
                               .override(
-                                color:
-                                    FlutterFlowTheme.of(context).secondaryText,
+                                color: FlutterFlowTheme.of(context)
+                                    .secondaryText,
                                 fontSize: 12.0,
                               )),
                       Text(
                         categoria,
                         style: FlutterFlowTheme.of(context).bodyMedium.override(
-                              color: FlutterFlowTheme.of(context).secondaryText,
+                              color:
+                                  FlutterFlowTheme.of(context).secondaryText,
                               fontSize: 12.0,
                             ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 4.0),
+                  const SizedBox(height: 4.0),
                   Container(
                     width: MediaQuery.sizeOf(context).width * 0.23,
                     height: MediaQuery.sizeOf(context).height * 0.025,
@@ -872,11 +850,12 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                     child: Center(
                       child: Text(
                         status,
-                        style: FlutterFlowTheme.of(context).bodyMedium.override(
-                              fontSize: 12.0,
-                              fontWeight: FontWeight.w600,
-                              fontStyle: FontStyle.italic,
-                            ),
+                        style:
+                            FlutterFlowTheme.of(context).bodyMedium.override(
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.w600,
+                                  fontStyle: FontStyle.italic,
+                                ),
                       ),
                     ),
                   ),
@@ -888,9 +867,9 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
               children: [
                 Text(
                   valor,
-                  style: FlutterFlowTheme.of(context).bodyMedium.override(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: FlutterFlowTheme.of(context)
+                      .bodyMedium
+                      .override(fontWeight: FontWeight.w800),
                 ),
                 Text(
                   'R\$ / hora',
@@ -915,31 +894,14 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
         Expanded(
           child: Container(
             width: MediaQuery.sizeOf(context).width * 0.88,
-            padding: EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                _buildProfileOption(
-                  icon: Icons.nights_stay,
-                  iconColor: FlutterFlowTheme.of(context).primaryText,
-                  backgroundColor: Color(0xFFA7BAFF),
-                  title: 'Modo Escuro',
-                  trailing: Switch.adaptive(
-                    value: _model.switchValue!,
-                    onChanged: (newValue) async {
-                      safeSetState(() => _model.switchValue = newValue);
-                    },
-                    activeColor: FlutterFlowTheme.of(context).primary,
-                    activeTrackColor: FlutterFlowTheme.of(context).primary,
-                    inactiveTrackColor: FlutterFlowTheme.of(context).alternate,
-                    inactiveThumbColor:
-                        FlutterFlowTheme.of(context).secondaryBackground,
-                  ),
-                ),
-                SizedBox(height: 16.0),
+                const SizedBox(height: 16.0),
                 _buildProfileOption(
                   icon: Icons.add_home_work,
                   iconColor: FlutterFlowTheme.of(context).primaryText,
-                  backgroundColor: Color(0xFFFFF1CD),
+                  backgroundColor: const Color(0xFFFFF1CD),
                   title: 'Meus Endereços',
                   onTap: () => context.pushNamed(EnderecosWidget.routeName),
                   trailing: Icon(
@@ -948,11 +910,11 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                     size: 20.0,
                   ),
                 ),
-                SizedBox(height: 16.0),
+                const SizedBox(height: 16.0),
                 _buildProfileOption(
                   icon: Icons.login_sharp,
                   iconColor: FlutterFlowTheme.of(context).primaryText,
-                  backgroundColor: Color(0xFFFFB8B8),
+                  backgroundColor: const Color(0xFFFFB8B8),
                   title: 'Sair',
                   onTap: () async {
                     GoRouter.of(context).prepareAuthEvent();
@@ -976,7 +938,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
       height: MediaQuery.sizeOf(context).height * 0.2,
       decoration: BoxDecoration(
         color: FlutterFlowTheme.of(context).secondaryBackground,
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             blurRadius: 4.0,
             color: Color(0x33000000),
@@ -991,13 +953,13 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
             width: MediaQuery.sizeOf(context).width * 0.18,
             height: MediaQuery.sizeOf(context).width * 0.18,
             clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(shape: BoxShape.circle),
+            decoration: const BoxDecoration(shape: BoxShape.circle),
             child: Image.network(
               'https://picsum.photos/seed/404/600',
               fit: BoxFit.cover,
             ),
           ),
-          SizedBox(height: 8.0),
+          const SizedBox(height: 8.0),
           Text(
             user?.nome ?? 'Usuário',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
@@ -1006,7 +968,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                   fontStyle: FontStyle.italic,
                 ),
           ),
-          SizedBox(height: 4.0),
+          const SizedBox(height: 4.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1050,7 +1012,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
         height: MediaQuery.sizeOf(context).height * 0.08,
         decoration: BoxDecoration(
           color: FlutterFlowTheme.of(context).secondaryBackground,
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               blurRadius: 4.0,
               color: Color(0x33000000),
@@ -1060,7 +1022,7 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
           borderRadius: BorderRadius.circular(16.0),
         ),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
             children: [
               Container(
@@ -1070,23 +1032,17 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
                   color: backgroundColor,
                   borderRadius: BorderRadius.circular(12.0),
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 20.0,
-                ),
+                child: Icon(icon, color: iconColor, size: 20.0),
               ),
-              SizedBox(width: 12.0),
+              const SizedBox(width: 12.0),
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      title,
-                      style: FlutterFlowTheme.of(context).bodyMedium.override(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
+                    Text(title,
+                        style: FlutterFlowTheme.of(context)
+                            .bodyMedium
+                            .override(fontWeight: FontWeight.w600)),
                     if (trailing != null) trailing,
                   ],
                 ),
@@ -1103,47 +1059,19 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
     return TabBar(
       labelColor: FlutterFlowTheme.of(context).primaryText,
       unselectedLabelColor: FlutterFlowTheme.of(context).secondaryText,
-      labelStyle: FlutterFlowTheme.of(context).titleMedium.override(
-            fontSize: 16.0,
-          ),
-      unselectedLabelStyle: FlutterFlowTheme.of(context).titleMedium.override(
-            fontSize: 16.0,
-          ),
-      tabs: [
-        Tab(
-          text: 'Inicio',
-          icon: Icon(Icons.home),
-        ),
-        Tab(
-          text: 'Pesquisar',
-          icon: Icon(Icons.search),
-        ),
-        Tab(
-          text: 'Agenda',
-          icon: Icon(Icons.edit_calendar),
-        ),
-        Tab(
-          text: 'Perfil',
-          icon: Icon(Icons.person),
-        ),
+      labelStyle:
+          FlutterFlowTheme.of(context).titleMedium.override(fontSize: 16.0),
+      unselectedLabelStyle:
+          FlutterFlowTheme.of(context).titleMedium.override(fontSize: 16.0),
+      tabs: const [
+        Tab(text: 'Inicio', icon: Icon(Icons.home)),
+        Tab(text: 'Pesquisar', icon: Icon(Icons.search)),
+        Tab(text: 'Agenda', icon: Icon(Icons.edit_calendar)),
+        Tab(text: 'Perfil', icon: Icon(Icons.person)),
       ],
       controller: _model.tabBarController,
       onTap: (i) async {
-        // Ações específicas para cada aba se necessário
-        switch (i) {
-          case 0:
-            // Aba Início
-            break;
-          case 1:
-            // Aba Pesquisar
-            break;
-          case 2:
-            // Aba Agenda
-            break;
-          case 3:
-            // Aba Perfil
-            break;
-        }
+        // Espaço para ações específicas por aba, se necessário
       },
     );
   }
