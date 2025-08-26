@@ -31,4 +31,8 @@ class UsuariosRow extends SupabaseDataRow {
 
   String? get tipoUsuario => getField<String>('tipo_usuario');
   set tipoUsuario(String? value) => setField<String>('tipo_usuario', value);
+
+  // NOVO CAMPO ADICIONADO
+  String? get categoriaId => getField<String>('categoria_id');
+  set categoriaId(String? value) => setField<String>('categoria_id', value);
 }

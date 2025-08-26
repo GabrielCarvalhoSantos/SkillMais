@@ -12,6 +12,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'telas_cliente_model.dart';
 export 'telas_cliente_model.dart';
+import '/custom_code/actions/servico_actions.dart';//Modificação para categoria id
 
 class TelasClienteWidget extends StatefulWidget {
   const TelasClienteWidget({super.key});

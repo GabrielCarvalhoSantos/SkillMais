@@ -15,6 +15,8 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:provider/provider.dart';
 import 'cadastro_prestador_model.dart';
 export 'cadastro_prestador_model.dart';
+import '/custom_code/actions/categoria_actions.dart'; //modificação para ver se categoria id funciona
+import '/custom_code/actions/prestador_actions.dart'; //modificação para ver se categoria id funciona
 
 class CadastroPrestadorWidget extends StatefulWidget {
   const CadastroPrestadorWidget({super.key});
@@ -31,6 +33,8 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
   late CadastroPrestadorModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
+
+  List<CategoriasRow>? _categoriasCarregadas;
 
   @override
   void initState() {
@@ -1392,7 +1396,9 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                           ),
                           FutureBuilder<List<CategoriasRow>>(
                             future: CategoriasTable().queryRows(
-                              queryFn: (q) => q,
+                              queryFn: (q) => q
+                                  .eq('ativo', true)
+                                  .order('nome', ascending: true),
                             ),
                             builder: (context, snapshot) {
                               // Customize what your widget looks like when it's loading.
@@ -1409,6 +1415,7 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                   ),
                                 );
                               }
+                              _categoriasCarregadas = snapshot.data!;
                               List<CategoriasRow>
                                   categoriaPrestadorCategoriasRowList =
                                   snapshot.data!;
@@ -1417,9 +1424,14 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                 controller:
                                     _model.categoriaPrestadorValueController ??=
                                         FormFieldController<String>(null),
+
+                                //MANTER ASSIM - usando NOMES (não IDs)
                                 options: categoriaPrestadorCategoriasRowList
                                     .map((e) => e.nome)
                                     .toList(),
+
+                                //NÃO ADICIONE optionLabels - isso não existe no FlutterFlowDropDown!
+
                                 onChanged: (val) => safeSetState(
                                     () => _model.categoriaPrestadorValue = val),
                                 width: 372.1,
@@ -1650,7 +1662,46 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                 0.0, 10.0, 0.0, 0.0),
                             child: FFButtonWidget(
                               onPressed: () async {
-                                // autenticação
+                                if (_model.categoriaPrestadorValue == null ||
+                                    _model.categoriaPrestadorValue!.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          'Por favor, selecione uma categoria'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                //2. CONVERTER NOME PARA ID (PARTE CRUCIAL!)
+                                String? categoriaId = _obterIdCategoriaPorNome(
+                                    _model.categoriaPrestadorValue);
+
+                                if (categoriaId == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          'Erro: Categoria não encontrada'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                // 3. Debug (remova após testar)
+                                print('🔍 DEBUG:');
+                                print(
+                                    'Nome selecionado: ${_model.categoriaPrestadorValue}');
+                                print('ID encontrado: $categoriaId');
+
+                                // 4. Validação do formulário
+                                if (_model.formKey.currentState == null ||
+                                    !_model.formKey.currentState!.validate()) {
+                                  return;
+                                }
+
+                                // 5. Autenticação
                                 GoRouter.of(context).prepareAuthEvent();
 
                                 final user =
@@ -1659,22 +1710,39 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                   _model.emailPrestadorTextController.text,
                                   _model.senhaPrestadorTextController.text,
                                 );
+
                                 if (user == null) {
                                   return;
                                 }
 
-                                await UsuariosTable().insert({
-                                  'user_id': currentUserUid,
-                                  'nome':
-                                      _model.nomePrestadorTextController.text,
-                                  'email': currentUserEmail,
-                                  'telefone': _model
+                                // 6. CADASTRAR COM O ID CORRETO (MUDANÇA PRINCIPAL)
+                                final erro =
+                                    await cadastrarPrestadorComCategoria(
+                                  userId: currentUserUid,
+                                  nome: _model.nomePrestadorTextController.text,
+                                  email:
+                                      _model.emailPrestadorTextController.text,
+                                  telefone: _model
                                       .telefonePrestadorTextController.text,
-                                  'tipo_usuario': 'prestador',
-                                });
+                                  categoriaId:
+                                      categoriaId, // ✅ CORRETO: Usa ID, não nome!
+                                );
 
-                                context.pushNamedAuth(
-                                    LoginPageWidget.routeName, context.mounted);
+                                if (erro == null) {
+                                  // ✅ Sucesso
+                                  print(
+                                      'Prestador cadastrado com categoria ID: $categoriaId');
+                                  context.goNamed('TelasPrestador');
+                                } else {
+                                  // Erro
+                                  print('Erro no cadastro: $erro');
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Erro no cadastro: $erro'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
                               },
                               text: 'Cadastrar',
                               options: FFButtonOptions(
@@ -1723,5 +1791,20 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
         ),
       ),
     );
+  }
+
+  String? _obterIdCategoriaPorNome(String? nomeCategoria) {
+    if (nomeCategoria == null || _categoriasCarregadas == null) {
+      return null;
+    }
+
+    try {
+      CategoriasRow categoria =
+          _categoriasCarregadas!.firstWhere((cat) => cat.nome == nomeCategoria);
+      return categoria.id;
+    } catch (e) {
+      print('Erro ao encontrar categoria: $e');
+      return null;
+    }
   }
 }
