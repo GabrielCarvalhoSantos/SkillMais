@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'novo_servico_model.dart';
 export 'novo_servico_model.dart';
+import '/custom_code/actions/servico_actions.dart';//Modificação para categoria id
 
 class NovoServicoWidget extends StatefulWidget {
   const NovoServicoWidget({super.key});
@@ -510,31 +511,96 @@ class _NovoServicoWidgetState extends State<NovoServicoWidget> {
                           EdgeInsetsDirectional.fromSTEB(0.0, 10.0, 0.0, 0.0),
                       child: FFButtonWidget(
                         onPressed: () async {
-                          await ServicosTable().insert({
-                            'prestador_id': currentUserUid,
-                            'titulo': _model.nomeServicoTextController.text,
-                            'descricao': _model.descricaoTextController.text,
-                            'preco_base': double.tryParse(
-                                _model.valorServicoTextController.text),
-                            'id': '',
-                            'ativo': true,
-                            'categoria_id': '',
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Sucesso pae.',
-                                style: TextStyle(
-                                  color:
-                                      FlutterFlowTheme.of(context).primaryText,
+                          // 1. Validações básicas
+                          if (_model.nomeServicoTextController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Por favor, informe o nome do serviço',
+                                  style: TextStyle(
+                                    color: FlutterFlowTheme.of(context).primaryText,
+                                  ),
                                 ),
+                                duration: Duration(milliseconds: 4000),
+                                backgroundColor: Colors.red,
                               ),
-                              duration: Duration(milliseconds: 4000),
-                              backgroundColor:
-                                  FlutterFlowTheme.of(context).secondary,
-                            ),
+                            );
+                            return;
+                          }
+
+                          if (_model.valorServicoTextController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Por favor, informe o valor do serviço',
+                                  style: TextStyle(
+                                    color: FlutterFlowTheme.of(context).primaryText,
+                                  ),
+                                ),
+                                duration: Duration(milliseconds: 4000),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          // 2. Validar preço
+                          double? precoBase = double.tryParse(_model.valorServicoTextController.text.replaceAll(',', '.'));
+                          if (precoBase == null || precoBase <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Por favor, informe um valor válido',
+                                  style: TextStyle(
+                                    color: FlutterFlowTheme.of(context).primaryText,
+                                  ),
+                                ),
+                                duration: Duration(milliseconds: 4000),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          // 3. Criar serviço usando a action com categoria automática
+                          final erro = await criarServicoComCategoriaPrestador(
+                            prestadorId: currentUserUid,
+                            titulo: _model.nomeServicoTextController.text.trim(),
+                            descricao: _model.descricaoTextController.text.trim(),
+                            precoBase: precoBase,
+                            // categoriaEspecifica: null -> Usa categoria do prestador automaticamente
                           );
-                          context.safePop();
+
+                          if (erro == null) {
+                            //Sucesso
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Serviço criado com sucesso!',
+                                  style: TextStyle(
+                                    color: FlutterFlowTheme.of(context).primaryText,
+                                  ),
+                                ),
+                                duration: Duration(milliseconds: 4000),
+                                backgroundColor: FlutterFlowTheme.of(context).secondary,
+                              ),
+                            );
+                            context.safePop();
+                          } else {
+                            //Erro
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  erro,
+                                  style: TextStyle(
+                                    color: FlutterFlowTheme.of(context).primaryText,
+                                  ),
+                                ),
+                                duration: Duration(milliseconds: 4000),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
                         },
                         text: 'Cadastrar Serviço',
                         options: FFButtonOptions(

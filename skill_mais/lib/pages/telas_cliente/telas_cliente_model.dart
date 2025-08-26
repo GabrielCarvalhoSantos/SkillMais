@@ -30,7 +30,6 @@ class TelasClienteModel extends FlutterFlowModel<TelasClienteWidget> {
   String? dropDownValue;
   FormFieldController<String>? dropDownValueController;
   // State field(s) for Switch widget.
-  bool? switchValue;
 
   @override
   void initState(BuildContext context) {}
