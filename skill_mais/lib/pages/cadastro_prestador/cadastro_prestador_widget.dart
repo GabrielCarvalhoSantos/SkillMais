@@ -1728,10 +1728,23 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                       categoriaId, // ✅ CORRETO: Usa ID, não nome!
                                 );
 
+                                // ✅ ADICIONE ESTA PARTE - Insert_endereços (igual ao cadastro_cliente)
+                                await EnderecosTable().insert({
+                                  'id': currentUserUid,
+                                  'usuario_id': currentUserUid,
+                                  'cep': _model.cEPprestadorTextController.text,
+                                  'numero': _model.nPrestadorTextController.text,
+                                  'cidade': _model.cidadePrestadorTextController.text,
+                                  'estado': _model.uFprestadorTextController.text,
+                                  'logradouro': _model.ruaPrestadorTextController.text,
+                                  'bairro': '', // Pode deixar vazio ou usar um campo se tiver
+                                });
+
                                 if (erro == null) {
                                   // ✅ Sucesso
                                   print(
                                       'Prestador cadastrado com categoria ID: $categoriaId');
+                                  print('Endereço salvo com sucesso!'); // ✅ Novo log
                                   context.goNamed('TelasPrestador');
                                 } else {
                                   // Erro

@@ -12,7 +12,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'telas_cliente_model.dart';
 export 'telas_cliente_model.dart';
-import '/custom_code/actions/servico_actions.dart';//Modificação para categoria id
+import '/custom_code/actions/servico_actions.dart'; // Modificação para categoria id
 
 class TelasClienteWidget extends StatefulWidget {
   const TelasClienteWidget({super.key});
@@ -29,6 +29,12 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
   late TelasClienteModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // Variáveis para busca de categorias
+  List<CategoriasRow> _todasCategorias = [];
+  List<CategoriasRow> _categoriasFiltradas = [];
+  bool _mostrarSugestoes = false;
+  String _ultimaBusca = '';
+
   @override
   void initState() {
     super.initState();
@@ -42,12 +48,144 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
 
     _model.textFieldTextController ??= TextEditingController();
     _model.textFieldFocusNode ??= FocusNode();
+
+    // Carregar todas as categorias na inicialização
+    _carregarCategorias();
+
+    // Listeners do campo de texto/foco
+    _model.textFieldTextController!.addListener(_onTextChanged);
+    _model.textFieldFocusNode!.addListener(_onFocusChanged);
   }
 
   @override
   void dispose() {
     _model.dispose();
     super.dispose();
+  }
+
+  // Carregar todas as categorias do banco
+  Future<void> _carregarCategorias() async {
+    try {
+      final categorias = await CategoriasTable().queryRows(
+        queryFn: (q) => q.eq('ativo', true).order('nome', ascending: true),
+      );
+      setState(() {
+        _todasCategorias = categorias;
+      });
+      // print para debug
+      // ignore: avoid_print
+      print('Categorias carregadas: ${categorias.map((c) => c.nome).toList()}');
+    } catch (e) {
+      // ignore: avoid_print
+      print('Erro ao carregar categorias: $e');
+    }
+  }
+
+  // Filtrar categorias conforme o usuário digita
+  void _onTextChanged() {
+    final texto = _model.textFieldTextController!.text.trim();
+
+    if (texto.isEmpty || texto.length < 2) {
+      setState(() {
+        _categoriasFiltradas = [];
+        _mostrarSugestoes = false;
+        _ultimaBusca = texto;
+      });
+      return;
+    }
+
+    final filtradas = _todasCategorias
+        .where((categoria) {
+          final nomeCategoria = categoria.nome.toLowerCase();
+          final textoBusca = texto.toLowerCase();
+          return nomeCategoria.contains(textoBusca);
+        })
+        .take(5)
+        .toList();
+
+    // ignore: avoid_print
+    print('Texto digitado: $texto');
+    // ignore: avoid_print
+    print('Categorias filtradas: ${filtradas.map((c) => c.nome).toList()}');
+
+    setState(() {
+      _categoriasFiltradas = filtradas;
+      _mostrarSugestoes = filtradas.isNotEmpty || texto.length >= 2;
+      _ultimaBusca = texto;
+    });
+  }
+
+  // Controlar quando mostrar sugestões baseado no foco
+  void _onFocusChanged() {
+    if (!_model.textFieldFocusNode!.hasFocus) {
+      // Pequeno delay para permitir clique na sugestão
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) {
+          setState(() {
+            _mostrarSugestoes = false;
+          });
+        }
+      });
+    }
+  }
+
+  // Selecionar categoria e navegar
+  void _selecionarCategoria(String nomeCategoria) {
+    // Limpar o campo e esconder sugestões
+    _model.textFieldTextController!.text = '';
+    setState(() {
+      _mostrarSugestoes = false;
+      _categoriasFiltradas = [];
+    });
+
+    // Remover foco do campo de texto
+    FocusScope.of(context).unfocus();
+
+    // ignore: avoid_print
+    print('Selecionada categoria: $nomeCategoria');
+
+    // Navegar para tela de prestadores com pequeno delay
+    Future.delayed(const Duration(milliseconds: 100), () {
+      context.pushNamed(
+        'profissionais22',
+        queryParameters: {
+          'categoriaSelecionada': nomeCategoria,
+        },
+      );
+    });
+  }
+
+  // Executar busca ao pressionar Enter ou botão de busca
+  void _executarBusca() {
+    final texto = _model.textFieldTextController!.text.trim();
+    if (texto.isEmpty) return;
+
+    CategoriasRow? categoriaExata =
+        _todasCategorias.cast<CategoriasRow?>().firstWhere(
+              (categoria) => categoria?.nome.toLowerCase() == texto.toLowerCase(),
+              orElse: () => null,
+            );
+
+    if (categoriaExata == null && _categoriasFiltradas.isNotEmpty) {
+      categoriaExata = _categoriasFiltradas.first;
+    }
+
+    if (categoriaExata != null) {
+      // ignore: avoid_print
+      print('Navegando para categoria: ${categoriaExata.nome}');
+      _selecionarCategoria(categoriaExata.nome);
+    } else {
+      // Mostrar mensagem de categoria não encontrada
+      // ignore: avoid_print
+      print('Categoria não encontrada: $texto');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Categoria "$texto" não encontrada.'),
+          backgroundColor: FlutterFlowTheme.of(context).error,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   // ===== Navegação comum para qualquer categoria =====
@@ -367,8 +505,6 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
     );
   }
 
-  // ================ **ATUALIZADO**: TAB CATEGORIAS ESTÁTICAS ================
-  // Agora todas as 3 de baixo têm o mesmo comportamento de navegação.
   Widget _buildCategoriaRowStatic() {
     return FutureBuilder<List<CategoriasRow>>(
       future: CategoriasTable().queryRows(
@@ -437,17 +573,38 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
     return Column(
       children: [
         _buildSearchHeader(),
+        // Importante: toda a área abaixo vira um Stack EXPANDIDO
         Expanded(
           child: Container(
             width: MediaQuery.sizeOf(context).width * 0.9,
             padding: const EdgeInsets.all(16.0),
-            child: Column(
+            child: Stack(
               children: [
-                _buildSearchField(),
-                const SizedBox(height: 16.0),
-                _buildRecentSearchesHeader(),
-                const SizedBox(height: 8.0),
-                Expanded(child: _buildRecentSearchesList()),
+                // Conteúdo base (sempre renderizado)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSearchField(),
+                    const SizedBox(height: 16.0),
+                    _buildRecentSearchesHeader(),
+                    const SizedBox(height: 8.0),
+                    // Mantemos a lista sempre presente (atrás das sugestões)
+                    Expanded(child: _buildRecentSearchesList()),
+                  ],
+                ),
+
+                // Sugestões de categorias (sobrepõe o conteúdo, sem empurrar layout)
+                if (_mostrarSugestoes)
+                  Positioned(
+                    // Logo abaixo do campo de busca
+                    top: 60.0,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      ignoring: !_mostrarSugestoes,
+                      child: _buildSugestoesCategorias(),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -504,11 +661,13 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
       focusNode: _model.textFieldFocusNode,
       autofocus: false,
       obscureText: false,
+      onFieldSubmitted: (value) => _executarBusca(),
       decoration: InputDecoration(
         isDense: true,
         hintText: 'Buscar por Categoria..',
-        hintStyle:
-            FlutterFlowTheme.of(context).labelMedium.override(color: const Color(0xFF9DA3AD)),
+        hintStyle: FlutterFlowTheme.of(context)
+            .labelMedium
+            .override(color: const Color(0xFF9DA3AD)),
         enabledBorder: OutlineInputBorder(
           borderSide: const BorderSide(color: Color(0xFF9DA3AD), width: 0.5),
           borderRadius: BorderRadius.circular(100.0),
@@ -531,10 +690,124 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
         filled: true,
         fillColor: FlutterFlowTheme.of(context).secondaryBackground,
         prefixIcon: const Icon(Icons.search),
+        suffixIcon: _model.textFieldTextController!.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.send),
+                onPressed: _executarBusca,
+              )
+            : null,
       ),
       style: FlutterFlowTheme.of(context).bodyMedium,
       cursorColor: FlutterFlowTheme.of(context).primaryText,
       validator: _model.textFieldTextControllerValidator?.asValidator(context),
+    );
+  }
+
+  // Widget para mostrar sugestões de categorias (sobreposição)
+  Widget _buildSugestoesCategorias() {
+    if (_categoriasFiltradas.isEmpty && _ultimaBusca.length >= 2) {
+      return Material(
+        elevation: 4,
+        borderRadius: BorderRadius.circular(12.0),
+        color: Colors.transparent,
+        child: Container(
+          margin: const EdgeInsets.only(top: 8.0),
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: FlutterFlowTheme.of(context).secondaryBackground,
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.search_off,
+                color: FlutterFlowTheme.of(context).secondaryText,
+                size: 20.0,
+              ),
+              const SizedBox(width: 12.0),
+              Expanded(
+                child: Text(
+                  'Nenhuma categoria encontrada para "$_ultimaBusca".',
+                  style: FlutterFlowTheme.of(context).bodyMedium.override(
+                        color: FlutterFlowTheme.of(context).secondaryText,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_categoriasFiltradas.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Material(
+      elevation: 6,
+      borderRadius: BorderRadius.circular(12.0),
+      child: Container(
+        margin: const EdgeInsets.only(top: 8.0),
+        constraints: const BoxConstraints(
+          maxHeight: 250.0,
+        ),
+        decoration: BoxDecoration(
+          color: FlutterFlowTheme.of(context).secondaryBackground,
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        child: ListView.builder(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          itemCount: _categoriasFiltradas.length,
+          itemBuilder: (context, index) {
+            final categoria = _categoriasFiltradas[index];
+            return InkWell(
+              onTap: () {
+                // ignore: avoid_print
+                print('Categoria selecionada: ${categoria.nome}');
+                _selecionarCategoria(categoria.nome);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 12.0),
+                decoration: BoxDecoration(
+                  border: index < _categoriasFiltradas.length - 1
+                      ? Border(
+                          bottom: BorderSide(
+                            color: FlutterFlowTheme.of(context).alternate,
+                            width: 0.5,
+                          ),
+                        )
+                      : null,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.category_outlined,
+                      color: FlutterFlowTheme.of(context).primary,
+                      size: 20.0,
+                    ),
+                    const SizedBox(width: 12.0),
+                    Expanded(
+                      child: Text(
+                        categoria.nome,
+                        style: FlutterFlowTheme.of(context)
+                            .bodyMedium
+                            .override(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    Icon(
+                      Icons.search,
+                      color: FlutterFlowTheme.of(context).secondaryText,
+                      size: 16.0,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -561,47 +834,73 @@ class _TelasClienteWidgetState extends State<TelasClienteWidget>
   }
 
   Widget _buildRecentSearchesList() {
-    final searchItems = ['Eletricista', 'Encanador', 'Pintor', 'Jardineiro'];
+    final categoriasRecentes = _todasCategorias.take(4).toList();
 
-    return Column(
-      children: searchItems.map((item) {
-        return Container(
-          width: double.infinity,
-          height: MediaQuery.sizeOf(context).height * 0.07,
-          margin: const EdgeInsets.only(bottom: 16.0),
-          decoration: BoxDecoration(
-            color: FlutterFlowTheme.of(context).secondaryBackground,
-            boxShadow: const [
-              BoxShadow(
-                blurRadius: 4.0,
-                color: Color(0x33000000),
-                offset: Offset(0.0, 2.0),
+    if (categoriasRecentes.isEmpty) {
+      return Center(
+        child: Text(
+          'Carregando categorias...',
+          style: FlutterFlowTheme.of(context).bodyMedium
+              .override(color: FlutterFlowTheme.of(context).secondaryText),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        children: categoriasRecentes.map((categoria) {
+          return InkWell(
+            onTap: () {
+              // ignore: avoid_print
+              print('Selecionando categoria do histórico: ${categoria.nome}');
+              _selecionarCategoria(categoria.nome);
+            },
+            child: Container(
+              width: double.infinity,
+              height: MediaQuery.sizeOf(context).height * 0.07,
+              margin: const EdgeInsets.only(bottom: 16.0),
+              decoration: BoxDecoration(
+                color: FlutterFlowTheme.of(context).secondaryBackground,
+                boxShadow: const [
+                  BoxShadow(
+                    blurRadius: 4.0,
+                    color: Color(0x33000000),
+                    offset: Offset(0.0, 2.0),
+                  ),
+                ],
+                borderRadius: BorderRadius.circular(10.0),
               ),
-            ],
-            borderRadius: BorderRadius.circular(10.0),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Icon(Icons.search_sharp,
-                    color: FlutterFlowTheme.of(context).primaryText, size: 24.0),
-                const SizedBox(width: 16.0),
-                Text(
-                  item,
-                  style: FlutterFlowTheme.of(context).bodyMedium.override(
-                        fontSize: 15.0,
-                        fontWeight: FontWeight.w500,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.history,
+                      color: FlutterFlowTheme.of(context).primaryText,
+                      size: 20.0,
+                    ),
+                    const SizedBox(width: 16.0),
+                    Expanded(
+                      child: Text(
+                        categoria.nome,
+                        style: FlutterFlowTheme.of(context).bodyMedium.override(
+                              fontSize: 15.0,
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: FlutterFlowTheme.of(context).secondaryText,
+                      size: 16.0,
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                Icon(Icons.clear_sharp,
-                    color: FlutterFlowTheme.of(context).primaryText, size: 24.0),
-              ],
+              ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
