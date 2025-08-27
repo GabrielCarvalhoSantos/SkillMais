@@ -1,17 +1,20 @@
+import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
-import 'dart:ui';
-import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'descricao_profissional_model.dart';
 export 'descricao_profissional_model.dart';
 
 class DescricaoProfissionalWidget extends StatefulWidget {
-  const DescricaoProfissionalWidget({super.key});
+  const DescricaoProfissionalWidget({
+    super.key,
+    required this.prestadorId, // recebido da Profissionais22
+  });
+
+  final String prestadorId;
 
   static String routeName = 'DescricaoProfissional';
   static String routePath = '/descricaoProfissional';
@@ -23,8 +26,9 @@ class DescricaoProfissionalWidget extends StatefulWidget {
 
 class _DescricaoProfissionalWidgetState
     extends State<DescricaoProfissionalWidget> {
-  late DescricaoProfissionalModel _model;
+  static const double _serviceRowHeight = 56.0;
 
+  late DescricaoProfissionalModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -36,12 +40,67 @@ class _DescricaoProfissionalWidgetState
   @override
   void dispose() {
     _model.dispose();
-
     super.dispose();
+  }
+
+  Future<Map<String, dynamic>> _loadData() async {
+    final user = await Supabase.instance.client
+        .from('usuarios')
+        .select('*')
+        .eq('user_id', widget.prestadorId)
+        .maybeSingle();
+
+    if (user == null) {
+      return {
+        'user': null,
+        'categoriaNome': null,
+        'servicos': <Map<String, dynamic>>[],
+      };
+    }
+
+    String? categoriaNome;
+    final categoriaId = user['categoria_id'];
+    if (categoriaId != null) {
+      final cat = await Supabase.instance.client
+          .from('categorias')
+          .select('nome')
+          .eq('id', categoriaId)
+          .maybeSingle();
+      categoriaNome = cat?['nome'] as String?;
+    }
+
+    final servicos = await Supabase.instance.client
+        .from('servicos')
+        .select('*')
+        .eq('prestador_id', widget.prestadorId)
+        .order('created_at', ascending: true);
+
+    return {
+      'user': user,
+      'categoriaNome': categoriaNome,
+      'servicos': servicos,
+    };
+  }
+
+  int _anosDesde(DateTime inicio) {
+    final agora = DateTime.now();
+    var anos = agora.year - inicio.year;
+    final passou = (agora.month > inicio.month) ||
+        (agora.month == inicio.month && agora.day >= inicio.day);
+    if (!passou) anos--;
+    return anos < 0 ? 0 : anos;
+  }
+
+  String _fmtPreco(dynamic v) {
+    if (v == null) return '0,00';
+    final n = (v is num) ? v : num.tryParse(v.toString()) ?? 0;
+    return n.toStringAsFixed(2).replaceAll('.', ',');
   }
 
   @override
   Widget build(BuildContext context) {
+    final th = FlutterFlowTheme.of(context);
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -49,773 +108,384 @@ class _DescricaoProfissionalWidgetState
       },
       child: Scaffold(
         key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+        backgroundColor: th.primaryBackground,
         body: SafeArea(
           top: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Container(
-                width: MediaQuery.sizeOf(context).width * 1.0,
-                height: MediaQuery.sizeOf(context).height * 1.0,
-                decoration: BoxDecoration(
-                  color: FlutterFlowTheme.of(context).alternate,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    Container(
-                      width: MediaQuery.sizeOf(context).width * 1.0,
-                      height: MediaQuery.sizeOf(context).height * 0.2,
-                      decoration: BoxDecoration(
-                        color: FlutterFlowTheme.of(context).alternate,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Column(
-                            mainAxisSize: MainAxisSize.max,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              FlutterFlowIconButton(
-                                borderColor: Colors.transparent,
-                                borderRadius: 30.0,
-                                borderWidth: 1.0,
-                                buttonSize: 60.0,
-                                icon: Icon(
-                                  Icons.arrow_back_rounded,
-                                  color:
-                                      FlutterFlowTheme.of(context).primaryText,
-                                  size: 30.0,
-                                ),
-                                onPressed: () async {
-                                  context.pushNamed(
-                                      Profissionais1Widget.routeName);
-                                },
-                              ),
-                            ],
-                          ),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(100.0),
-                            child: Image.network(
-                              'https://picsum.photos/seed/16/600',
-                              height: 120.0,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ].divide(SizedBox(width: 80.0)),
-                      ),
+          child: FutureBuilder<Map<String, dynamic>>(
+            future: _loadData(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return Center(
+                  child: SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(th.primary),
                     ),
+                  ),
+                );
+              }
+
+              final data = snapshot.data!;
+              final user = data['user'] as Map<String, dynamic>?;
+              final categoriaNome = data['categoriaNome'] as String?;
+              final servicos =
+                  (data['servicos'] as List).cast<Map<String, dynamic>>();
+
+              if (user == null) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Text('Profissional não encontrado.',
+                        style: th.titleMedium),
+                  ),
+                );
+              }
+
+              final nome = (user['nome'] ?? '').toString();
+              final sobre = (user['descricao'] ?? '').toString();
+              final createdAtStr = (user['created_at'] ?? '').toString();
+              final createdAt =
+                  DateTime.tryParse(createdAtStr) ?? DateTime.now();
+              final anos = _anosDesde(createdAt);
+
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ===== HEADER =====
                     Container(
-                      width: MediaQuery.sizeOf(context).width * 1.0,
-                      height: MediaQuery.sizeOf(context).height * 1.0,
-                      decoration: BoxDecoration(
-                        color: FlutterFlowTheme.of(context).primaryBackground,
-                      ),
+                      color: th.secondaryBackground,
+                      padding: const EdgeInsets.only(
+                          left: 8, right: 8, top: 8, bottom: 16),
                       child: Column(
-                        mainAxisSize: MainAxisSize.max,
                         children: [
-                          Column(
-                            mainAxisSize: MainAxisSize.max,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Align(
-                                alignment: AlignmentDirectional(0.0, 0.0),
-                                child: Text(
-                                  'Marcos Santos',
-                                  textAlign: TextAlign.start,
-                                  style: FlutterFlowTheme.of(context)
-                                      .headlineMedium
-                                      .override(
-                                        font: GoogleFonts.robotoCondensed(
-                                          fontWeight: FontWeight.bold,
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                        color: FlutterFlowTheme.of(context)
-                                            .primaryText,
-                                        fontSize: 25.0,
-                                        letterSpacing: 0.0,
-                                        fontWeight: FontWeight.bold,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 0.0, 10.0),
-                                child: Text(
-                                  'Encanador Profissional',
-                                  style: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .override(
-                                        font: GoogleFonts.inter(
-                                          fontWeight:
-                                              FlutterFlowTheme.of(context)
-                                                  .bodyMedium
-                                                  .fontWeight,
-                                          fontStyle:
-                                              FlutterFlowTheme.of(context)
-                                                  .bodyMedium
-                                                  .fontStyle,
-                                        ),
-                                        color: FlutterFlowTheme.of(context)
-                                            .secondaryText,
-                                        letterSpacing: 0.0,
-                                        fontWeight: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .fontWeight,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .fontStyle,
-                                      ),
-                                ),
-                              ),
-                              Row(
-                                mainAxisSize: MainAxisSize.max,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width:
-                                        MediaQuery.sizeOf(context).width * 0.28,
-                                    height: MediaQuery.sizeOf(context).height *
-                                        0.085,
-                                    decoration: BoxDecoration(
-                                      color: FlutterFlowTheme.of(context)
-                                          .secondaryBackground,
-                                      borderRadius: BorderRadius.circular(16.0),
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.max,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          '4.8',
-                                          style: FlutterFlowTheme.of(context)
-                                              .bodyMedium
-                                              .override(
-                                                font: GoogleFonts.inter(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontStyle: FontStyle.italic,
-                                                ),
-                                                fontSize: 20.0,
-                                                letterSpacing: 0.0,
-                                                fontWeight: FontWeight.bold,
-                                                fontStyle: FontStyle.italic,
-                                              ),
-                                        ),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              '92',
-                                              style:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .override(
-                                                        font: GoogleFonts.inter(
-                                                          fontWeight:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .fontWeight,
-                                                          fontStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .fontStyle,
-                                                        ),
-                                                        letterSpacing: 0.0,
-                                                        fontWeight:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodyMedium
-                                                                .fontWeight,
-                                                        fontStyle:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodyMedium
-                                                                .fontStyle,
-                                                      ),
-                                            ),
-                                            Text(
-                                              'Avaliações',
-                                              style:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .override(
-                                                        font: GoogleFonts.inter(
-                                                          fontWeight:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .fontWeight,
-                                                          fontStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .fontStyle,
-                                                        ),
-                                                        letterSpacing: 0.0,
-                                                        fontWeight:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodyMedium
-                                                                .fontWeight,
-                                                        fontStyle:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodyMedium
-                                                                .fontStyle,
-                                                      ),
-                                            ),
-                                          ]
-                                              .divide(SizedBox(width: 5.0))
-                                              .around(SizedBox(width: 5.0)),
-                                        ),
-                                      ].divide(SizedBox(height: 5.0)),
-                                    ),
-                                  ),
-                                  Container(
-                                    width:
-                                        MediaQuery.sizeOf(context).width * 0.28,
-                                    height: MediaQuery.sizeOf(context).height *
-                                        0.085,
-                                    decoration: BoxDecoration(
-                                      color: FlutterFlowTheme.of(context)
-                                          .secondaryBackground,
-                                      borderRadius: BorderRadius.circular(16.0),
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.max,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          '156',
-                                          style: FlutterFlowTheme.of(context)
-                                              .bodyMedium
-                                              .override(
-                                                font: GoogleFonts.inter(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontStyle: FontStyle.italic,
-                                                ),
-                                                fontSize: 20.0,
-                                                letterSpacing: 0.0,
-                                                fontWeight: FontWeight.bold,
-                                                fontStyle: FontStyle.italic,
-                                              ),
-                                        ),
-                                        Text(
-                                          'Serviços',
-                                          style: FlutterFlowTheme.of(context)
-                                              .bodyMedium
-                                              .override(
-                                                font: GoogleFonts.inter(
-                                                  fontWeight:
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .bodyMedium
-                                                          .fontWeight,
-                                                  fontStyle:
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .bodyMedium
-                                                          .fontStyle,
-                                                ),
-                                                letterSpacing: 0.0,
-                                                fontWeight:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontWeight,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontStyle,
-                                              ),
-                                        ),
-                                      ].divide(SizedBox(height: 5.0)),
-                                    ),
-                                  ),
-                                  Container(
-                                    width:
-                                        MediaQuery.sizeOf(context).width * 0.28,
-                                    height: MediaQuery.sizeOf(context).height *
-                                        0.085,
-                                    decoration: BoxDecoration(
-                                      color: FlutterFlowTheme.of(context)
-                                          .secondaryBackground,
-                                      borderRadius: BorderRadius.circular(16.0),
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.max,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Row(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              '2',
-                                              style: FlutterFlowTheme.of(
-                                                      context)
-                                                  .bodyMedium
-                                                  .override(
-                                                    font: GoogleFonts.inter(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontStyle:
-                                                          FontStyle.italic,
-                                                    ),
-                                                    fontSize: 20.0,
-                                                    letterSpacing: 0.0,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontStyle: FontStyle.italic,
-                                                  ),
-                                            ),
-                                            Text(
-                                              'anos',
-                                              style: FlutterFlowTheme.of(
-                                                      context)
-                                                  .bodyMedium
-                                                  .override(
-                                                    font: GoogleFonts.inter(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontStyle:
-                                                          FontStyle.italic,
-                                                    ),
-                                                    fontSize: 20.0,
-                                                    letterSpacing: 0.0,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontStyle: FontStyle.italic,
-                                                  ),
-                                            ),
-                                          ].divide(SizedBox(width: 6.0)),
-                                        ),
-                                        Text(
-                                          'Avaliações',
-                                          style: FlutterFlowTheme.of(context)
-                                              .bodyMedium
-                                              .override(
-                                                font: GoogleFonts.inter(
-                                                  fontWeight:
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .bodyMedium
-                                                          .fontWeight,
-                                                  fontStyle:
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .bodyMedium
-                                                          .fontStyle,
-                                                ),
-                                                letterSpacing: 0.0,
-                                                fontWeight:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontWeight,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontStyle,
-                                              ),
-                                        ),
-                                      ].divide(SizedBox(height: 5.0)),
-                                    ),
-                                  ),
-                                ].divide(SizedBox(width: 16.0)),
-                              ),
-                            ]
-                                .divide(SizedBox(height: 8.0))
-                                .around(SizedBox(height: 8.0)),
-                          ),
-                          Padding(
-                            padding: EdgeInsetsDirectional.fromSTEB(
-                                15.0, 10.0, 15.0, 0.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.max,
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                Align(
-                                  alignment: AlignmentDirectional(-1.0, 0.0),
-                                  child: Text(
-                                    'Sobre',
-                                    textAlign: TextAlign.start,
-                                    style: FlutterFlowTheme.of(context)
-                                        .headlineMedium
-                                        .override(
-                                          font: GoogleFonts.robotoCondensed(
-                                            fontWeight: FontWeight.bold,
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                          color: FlutterFlowTheme.of(context)
-                                              .primaryText,
-                                          fontSize: 20.0,
-                                          letterSpacing: 0.0,
-                                          fontWeight: FontWeight.bold,
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                  ),
-                                ),
-                                Text(
-                                  'Profissional com mais de 10 anos de experiência em encanamento residencial e comercial. Especializado em instalações, reparos e manutenção preventiva.',
-                                  textAlign: TextAlign.justify,
-                                  style: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .override(
-                                        font: GoogleFonts.inter(
-                                          fontWeight: FontWeight.normal,
-                                          fontStyle:
-                                              FlutterFlowTheme.of(context)
-                                                  .bodyMedium
-                                                  .fontStyle,
-                                        ),
-                                        color: FlutterFlowTheme.of(context)
-                                            .secondaryText,
-                                        fontSize: 14.0,
-                                        letterSpacing: 1.0,
-                                        fontWeight: FontWeight.normal,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .fontStyle,
-                                      ),
-                                ),
-                                Align(
-                                  alignment: AlignmentDirectional(-1.0, 0.0),
-                                  child: Text(
-                                    'Principais Serviços',
-                                    textAlign: TextAlign.start,
-                                    style: FlutterFlowTheme.of(context)
-                                        .headlineMedium
-                                        .override(
-                                          font: GoogleFonts.robotoCondensed(
-                                            fontWeight: FontWeight.bold,
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                          color: FlutterFlowTheme.of(context)
-                                              .primaryText,
-                                          fontSize: 20.0,
-                                          letterSpacing: 0.0,
-                                          fontWeight: FontWeight.bold,
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                  ),
-                                ),
-                                Container(
-                                  width: MediaQuery.sizeOf(context).width * 1.0,
-                                  height:
-                                      MediaQuery.sizeOf(context).height * 0.09,
-                                  decoration: BoxDecoration(
-                                    color: FlutterFlowTheme.of(context)
-                                        .secondaryBackground,
-                                    borderRadius: BorderRadius.circular(16.0),
-                                    border: Border.all(
-                                      color: Color(0xBBBEBEBE),
-                                      width: 0.5,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        '•',
-                                        style: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .override(
-                                              font: GoogleFonts.inter(
-                                                fontWeight:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontWeight,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontStyle,
-                                              ),
-                                              color:
-                                                  FlutterFlowTheme.of(context)
-                                                      .success,
-                                              fontSize: 25.0,
-                                              letterSpacing: 0.0,
-                                              fontWeight:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .fontWeight,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .fontStyle,
-                                            ),
-                                      ),
-                                      Text(
-                                        'Instalação de torneiras e registros',
-                                        style: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .override(
-                                              font: GoogleFonts.inter(
-                                                fontWeight: FontWeight.w600,
-                                                fontStyle: FontStyle.italic,
-                                              ),
-                                              color:
-                                                  FlutterFlowTheme.of(context)
-                                                      .primaryText,
-                                              letterSpacing: 0.0,
-                                              fontWeight: FontWeight.w600,
-                                              fontStyle: FontStyle.italic,
-                                            ),
-                                      ),
-                                      Column(
-                                        mainAxisSize: MainAxisSize.max,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            '80',
-                                            style: FlutterFlowTheme.of(context)
-                                                .bodyMedium
-                                                .override(
-                                                  font: GoogleFonts.inter(
-                                                    fontWeight: FontWeight.w800,
-                                                    fontStyle:
-                                                        FlutterFlowTheme.of(
-                                                                context)
-                                                            .bodyMedium
-                                                            .fontStyle,
-                                                  ),
-                                                  color: FlutterFlowTheme.of(
-                                                          context)
-                                                      .primaryText,
-                                                  letterSpacing: 0.0,
-                                                  fontWeight: FontWeight.w800,
-                                                  fontStyle:
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .bodyMedium
-                                                          .fontStyle,
-                                                ),
-                                          ),
-                                          Text(
-                                            'Reais',
-                                            style: FlutterFlowTheme.of(context)
-                                                .bodyMedium
-                                                .override(
-                                                  font: GoogleFonts.inter(
-                                                    fontWeight: FontWeight.w800,
-                                                    fontStyle:
-                                                        FlutterFlowTheme.of(
-                                                                context)
-                                                            .bodyMedium
-                                                            .fontStyle,
-                                                  ),
-                                                  color: FlutterFlowTheme.of(
-                                                          context)
-                                                      .primaryText,
-                                                  letterSpacing: 0.0,
-                                                  fontWeight: FontWeight.w800,
-                                                  fontStyle:
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .bodyMedium
-                                                          .fontStyle,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ]
-                                        .divide(SizedBox(width: 1.0))
-                                        .around(SizedBox(width: 1.0)),
-                                  ),
-                                ),
-                                Container(
-                                  width: MediaQuery.sizeOf(context).width * 1.0,
-                                  height:
-                                      MediaQuery.sizeOf(context).height * 0.09,
-                                  decoration: BoxDecoration(
-                                    color: FlutterFlowTheme.of(context)
-                                        .secondaryBackground,
-                                    borderRadius: BorderRadius.circular(16.0),
-                                    border: Border.all(
-                                      color: Color(0xBBBEBEBE),
-                                      width: 0.5,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        '•',
-                                        style: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .override(
-                                              font: GoogleFonts.inter(
-                                                fontWeight:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontWeight,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontStyle,
-                                              ),
-                                              color:
-                                                  FlutterFlowTheme.of(context)
-                                                      .success,
-                                              fontSize: 25.0,
-                                              letterSpacing: 0.0,
-                                              fontWeight:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .fontWeight,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .fontStyle,
-                                            ),
-                                      ),
-                                      Text(
-                                        'Desentupimento de pias e ralos',
-                                        style: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .override(
-                                              font: GoogleFonts.inter(
-                                                fontWeight: FontWeight.w600,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontStyle,
-                                              ),
-                                              letterSpacing: 0.0,
-                                              fontWeight: FontWeight.w600,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .fontStyle,
-                                            ),
-                                      ),
-                                      Column(
-                                        mainAxisSize: MainAxisSize.max,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            '120',
-                                            style: FlutterFlowTheme.of(context)
-                                                .bodyMedium
-                                                .override(
-                                                  font: GoogleFonts.inter(
-                                                    fontWeight: FontWeight.w800,
-                                                    fontStyle:
-                                                        FlutterFlowTheme.of(
-                                                                context)
-                                                            .bodyMedium
-                                                            .fontStyle,
-                                                  ),
-                                                  color: FlutterFlowTheme.of(
-                                                          context)
-                                                      .primaryText,
-                                                  letterSpacing: 0.0,
-                                                  fontWeight: FontWeight.w800,
-                                                  fontStyle:
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .bodyMedium
-                                                          .fontStyle,
-                                                ),
-                                          ),
-                                          Text(
-                                            'Reais',
-                                            style: FlutterFlowTheme.of(context)
-                                                .bodyMedium
-                                                .override(
-                                                  font: GoogleFonts.inter(
-                                                    fontWeight: FontWeight.w800,
-                                                    fontStyle:
-                                                        FlutterFlowTheme.of(
-                                                                context)
-                                                            .bodyMedium
-                                                            .fontStyle,
-                                                  ),
-                                                  color: FlutterFlowTheme.of(
-                                                          context)
-                                                      .primaryText,
-                                                  letterSpacing: 0.0,
-                                                  fontWeight: FontWeight.w800,
-                                                  fontStyle:
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .bodyMedium
-                                                          .fontStyle,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ]
-                                        .divide(SizedBox(width: 1.0))
-                                        .around(SizedBox(width: 1.0)),
-                                  ),
-                                ),
-                              ].divide(SizedBox(height: 16.0)),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: FlutterFlowIconButton(
+                              borderColor: Colors.transparent,
+                              borderRadius: 28,
+                              buttonSize: 48,
+                              icon: Icon(Icons.arrow_back_rounded,
+                                  color: th.primaryText),
+                              onPressed: () => context.safePop(),
                             ),
                           ),
-                          Padding(
-                            padding: EdgeInsetsDirectional.fromSTEB(
-                                0.0, 32.0, 0.0, 0.0),
-                            child: FFButtonWidget(
-                              onPressed: () {
-                                print('Button pressed ...');
-                              },
-                              text: 'Agendar Serviço',
-                              options: FFButtonOptions(
-                                width: MediaQuery.sizeOf(context).width * 0.9,
-                                height:
-                                    MediaQuery.sizeOf(context).height * 0.06,
-                                padding: EdgeInsetsDirectional.fromSTEB(
-                                    16.0, 0.0, 16.0, 0.0),
-                                iconPadding: EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 0.0, 0.0),
-                                color: Color(0xFF142A7B),
-                                textStyle: FlutterFlowTheme.of(context)
-                                    .titleSmall
-                                    .override(
-                                      font: GoogleFonts.interTight(
-                                        fontWeight: FlutterFlowTheme.of(context)
-                                            .titleSmall
-                                            .fontWeight,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                      color: Colors.white,
-                                      letterSpacing: 0.0,
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .titleSmall
-                                          .fontWeight,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                elevation: 0.0,
-                                borderRadius: BorderRadius.circular(8.0),
+                          const SizedBox(height: 6),
+                          CircleAvatar(
+                            radius: 44,
+                            backgroundImage: const NetworkImage(
+                                'https://picsum.photos/seed/16/600'),
+                            backgroundColor: th.alternate,
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            nome.isEmpty ? 'Profissional' : nome,
+                            textAlign: TextAlign.center,
+                            style: th.headlineMedium.override(
+                              font: GoogleFonts.robotoCondensed(
+                                fontWeight: FontWeight.w700,
+                                fontStyle: FontStyle.italic,
                               ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            categoriaNome ?? 'Profissional',
+                            textAlign: TextAlign.center,
+                            style: th.bodySmall.override(
+                              font: GoogleFonts.inter(
+                                fontStyle: FontStyle.italic,
+                              ),
+                              color: th.secondaryText,
                             ),
                           ),
                         ],
                       ),
                     ),
+
+                    // ===== PILLS FORA DO HEADER =====
+                    Container(color: th.secondaryBackground, height: 1),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const _StatPill(
+                            topText: '4.8',
+                            bottomLeft: '92',
+                            bottomRight: 'Avaliações',
+                          ),
+                          const SizedBox(width: 12),
+                          const _StatPill(
+                            topText: '156',
+                            bottomLeft: 'Serviços',
+                            bottomRight: '',
+                          ),
+                          const SizedBox(width: 12),
+                          _StatPill(
+                            topText: '$anos anos',
+                            bottomLeft: 'Na Plataforma',
+                            bottomRight: '',
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ===== SOBRE =====
+                    const _SectionTitle(title: 'Sobre'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Container(
+                        width: double.infinity,
+                        constraints:
+                            const BoxConstraints(minHeight: 80, maxHeight: 220),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: th.secondaryBackground,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: th.alternate, width: 1),
+                        ),
+                        child: Text(
+                          sobre.isEmpty
+                              ? 'Profissional ainda não adicionou uma descrição.'
+                              : sobre,
+                          textAlign: TextAlign.justify,
+                          style: th.bodyMedium.override(
+                            font: GoogleFonts.inter(),
+                            color: th.secondaryText,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // ===== SERVIÇOS =====
+                    const _SectionTitle(title: 'Principais Serviços'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Column(
+                        children: servicos.isEmpty
+                            ? [
+                                Container(
+                                  width: double.infinity,
+                                  height: _serviceRowHeight,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: th.secondaryBackground,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: th.alternate, width: 1),
+                                  ),
+                                  child: Text('Nenhum serviço cadastrado.',
+                                      style: th.bodyMedium),
+                                ),
+                              ]
+                            : List.generate(servicos.length, (i) {
+                                final s = servicos[i];
+                                final titulo =
+                                    (s['titulo'] ?? s['nome'] ?? '').toString();
+                                final precoNum =
+                                    s['preco'] ?? s['preco_base'] ?? s['valor'];
+                                final preco = _fmtPreco(precoNum);
+
+                                return Container(
+                                  height: _serviceRowHeight,
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: th.secondaryBackground,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: th.alternate, width: 1),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: th.success,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          titulo.isEmpty ? 'Serviço' : titulo,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: th.bodyMedium.override(
+                                            font: GoogleFonts.inter(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            preco,
+                                            style: th.bodyMedium.override(
+                                              font: GoogleFonts.inter(
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                          ),
+                                          Text(
+                                            'Reais',
+                                            style: th.bodySmall.override(
+                                              font: GoogleFonts.inter(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                              color: th.secondaryText,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+                    // ===== BOTÃO (NAVEGAÇÃO) =====
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: FFButtonWidget(
+                        onPressed: () {
+                          // >>> Direciona para a tela AgendarServico com o prestadorId <<<
+                          context.pushNamed(
+                            'AgendarServico', // ou AgendarServicoWidget.routeName se preferir importar a classe
+                            queryParameters: {
+                              'prestadorId': serializeParam(
+                                widget.prestadorId,
+                                ParamType.String,
+                              ),
+                            }.withoutNulls,
+                          );
+                        },
+                        text: 'Agendar Serviço',
+                        options: FFButtonOptions(
+                          width: double.infinity,
+                          height: 50,
+                          color: const Color(0xFF142A7B),
+                          textStyle:
+                              FlutterFlowTheme.of(context).titleSmall.override(
+                                    font: GoogleFonts.interTight(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    color: Colors.white,
+                                  ),
+                          elevation: 0,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ===== COMPONENTES =====
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final th = FlutterFlowTheme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: th.titleMedium.override(
+            font: GoogleFonts.robotoCondensed(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatPill extends StatelessWidget {
+  const _StatPill({
+    required this.topText,
+    required this.bottomLeft,
+    required this.bottomRight,
+  });
+
+  final String topText;
+  final String bottomLeft;
+  final String bottomRight;
+
+  @override
+  Widget build(BuildContext context) {
+    final th = FlutterFlowTheme.of(context);
+    return Container(
+      width: 112,
+      height: 80,
+      decoration: BoxDecoration(
+        color: th.secondaryBackground,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: th.alternate.withOpacity(0.25),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            topText,
+            textAlign: TextAlign.center,
+            style: th.bodyMedium.override(
+              font: GoogleFonts.inter(
+                fontWeight: FontWeight.w700,
+                fontStyle: FontStyle.italic,
+              ),
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(bottomLeft, style: th.bodySmall),
+              if (bottomRight.isNotEmpty) ...[
+                const SizedBox(width: 4),
+                Text(bottomRight, style: th.bodySmall),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }

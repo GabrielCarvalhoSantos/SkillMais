@@ -102,16 +102,27 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
           path: TelasClienteBackupWidget.routePath,
           builder: (context, params) => TelasClienteBackupWidget(),
         ),
-        FFRoute(
-          name: DescricaoProfissionalWidget.routeName,
-          path: DescricaoProfissionalWidget.routePath,
-          builder: (context, params) => DescricaoProfissionalWidget(),
-        ),
-        FFRoute(
-          name: AgendarServicoWidget.routeName,
-          path: AgendarServicoWidget.routePath,
-          builder: (context, params) => AgendarServicoWidget(),
-        ),
+FFRoute(
+  name: DescricaoProfissionalWidget.routeName,
+  path: DescricaoProfissionalWidget.routePath,
+  builder: (context, params) {
+    final prestadorId = params.getParam('prestadorId', ParamType.String);
+    if (prestadorId == null || prestadorId.isEmpty) {
+      debugPrint('DescricaoProfissional: prestadorId ausente');
+      Future.microtask(() => Navigator.of(context).pop());
+      return const SizedBox.shrink();
+    }
+    return DescricaoProfissionalWidget(prestadorId: prestadorId);
+  },
+),
+FFRoute(
+  name: AgendarServicoWidget.routeName,
+  path: AgendarServicoWidget.routePath,
+  builder: (context, params) {
+    final pid = params.getParam('prestadorId', ParamType.String);
+    return AgendarServicoWidget(prestadorId: pid ?? '');
+  },
+),
         FFRoute(
           name: SplashWidget.routeName,
           path: SplashWidget.routePath,

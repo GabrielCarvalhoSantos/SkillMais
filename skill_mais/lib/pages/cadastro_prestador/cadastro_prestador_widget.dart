@@ -830,8 +830,7 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                               focusedErrorBorder: OutlineInputBorder(
                                 borderSide: BorderSide(
                                   color: FlutterFlowTheme.of(context).error,
-                                  width: 2.0,
-                                ),
+                                  width: 2.0),
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
                               filled: true,
@@ -958,8 +957,7 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                         borderSide: BorderSide(
                                           color: FlutterFlowTheme.of(context)
                                               .error,
-                                          width: 2.0,
-                                        ),
+                                          width: 2.0),
                                         borderRadius:
                                             BorderRadius.circular(8.0),
                                       ),
@@ -1077,8 +1075,7 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                         borderSide: BorderSide(
                                           color: FlutterFlowTheme.of(context)
                                               .error,
-                                          width: 2.0,
-                                        ),
+                                          width: 2.0),
                                         borderRadius:
                                             BorderRadius.circular(8.0),
                                       ),
@@ -1086,8 +1083,7 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                         borderSide: BorderSide(
                                           color: FlutterFlowTheme.of(context)
                                               .error,
-                                          width: 2.0,
-                                        ),
+                                          width: 2.0),
                                         borderRadius:
                                             BorderRadius.circular(8.0),
                                       ),
@@ -1207,8 +1203,7 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                         borderSide: BorderSide(
                                           color: FlutterFlowTheme.of(context)
                                               .error,
-                                          width: 2.0,
-                                        ),
+                                          width: 2.0),
                                         borderRadius:
                                             BorderRadius.circular(8.0),
                                       ),
@@ -1216,8 +1211,7 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                         borderSide: BorderSide(
                                           color: FlutterFlowTheme.of(context)
                                               .error,
-                                          width: 2.0,
-                                        ),
+                                          width: 2.0),
                                         borderRadius:
                                             BorderRadius.circular(8.0),
                                       ),
@@ -1322,15 +1316,13 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                               errorBorder: OutlineInputBorder(
                                 borderSide: BorderSide(
                                   color: FlutterFlowTheme.of(context).error,
-                                  width: 2.0,
-                                ),
+                                  width: 2.0),
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
                               focusedErrorBorder: OutlineInputBorder(
                                 borderSide: BorderSide(
                                   color: FlutterFlowTheme.of(context).error,
-                                  width: 2.0,
-                                ),
+                                  width: 2.0),
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
                               filled: true,
@@ -1401,7 +1393,6 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                   .order('nome', ascending: true),
                             ),
                             builder: (context, snapshot) {
-                              // Customize what your widget looks like when it's loading.
                               if (!snapshot.hasData) {
                                 return Center(
                                   child: SizedBox(
@@ -1424,14 +1415,9 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                 controller:
                                     _model.categoriaPrestadorValueController ??=
                                         FormFieldController<String>(null),
-
-                                //MANTER ASSIM - usando NOMES (não IDs)
                                 options: categoriaPrestadorCategoriasRowList
                                     .map((e) => e.nome)
                                     .toList(),
-
-                                //NÃO ADICIONE optionLabels - isso não existe no FlutterFlowDropDown!
-
                                 onChanged: (val) => safeSetState(
                                     () => _model.categoriaPrestadorValue = val),
                                 width: 372.1,
@@ -1614,15 +1600,13 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                               errorBorder: OutlineInputBorder(
                                 borderSide: BorderSide(
                                   color: FlutterFlowTheme.of(context).error,
-                                  width: 2.0,
-                                ),
+                                  width: 2.0),
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
                               focusedErrorBorder: OutlineInputBorder(
                                 borderSide: BorderSide(
                                   color: FlutterFlowTheme.of(context).error,
-                                  width: 2.0,
-                                ),
+                                  width: 2.0),
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
                               filled: true,
@@ -1737,14 +1721,28 @@ class _CadastroPrestadorWidgetState extends State<CadastroPrestadorWidget> {
                                   'cidade': _model.cidadePrestadorTextController.text,
                                   'estado': _model.uFprestadorTextController.text,
                                   'logradouro': _model.ruaPrestadorTextController.text,
-                                  'bairro': '', // Pode deixar vazio ou usar um campo se tiver
+                                  'bairro': '',
                                 });
+
+                                // ✅ NOVO: salvar descrição do usuário
+                              try {
+                                await Supabase.instance.client
+                                  .from('usuarios')
+                                  .update({
+                                  'descricao': _model.sobrePrestadorTextController.text,
+                                  })
+                                  .eq('user_id', currentUserUid); // ← usa user_id conforme a tabela
+                                  print('Descrição salva com sucesso!');
+                              } catch (e) {
+                                // não bloqueia o fluxo caso falhe apenas a descrição 
+                                 print('Falha ao salvar descrição: $e');
+                              }
 
                                 if (erro == null) {
                                   // ✅ Sucesso
                                   print(
                                       'Prestador cadastrado com categoria ID: $categoriaId');
-                                  print('Endereço salvo com sucesso!'); // ✅ Novo log
+                                  print('Endereço salvo com sucesso!');
                                   context.goNamed('TelasPrestador');
                                 } else {
                                   // Erro
