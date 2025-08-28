@@ -114,7 +114,7 @@ class _TelasPrestadorWidgetState extends State<TelasPrestadorWidget>
                               ),
                               
                               // Aba Agenda
-                              AgendaTabWidget(),
+                              AgendaTabPrestadorWidget(),
                               
                               // Aba Serviços
                               ServicesTabWidget(
