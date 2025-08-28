@@ -29,104 +29,36 @@ class _ProfileTabWidgetState extends State<ProfileTabWidget> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: double.infinity,
-          height: MediaQuery.sizeOf(context).height * 0.2,
-          decoration: BoxDecoration(
-            color: FlutterFlowTheme.of(context).secondaryBackground,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 70,
-                height: 70,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(shape: BoxShape.circle),
-                child: Image.network(
-                  'https://picsum.photos/seed/404/600',
-                  fit: BoxFit.cover,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                widget.user?.nome ?? 'null',
-                style: FlutterFlowTheme.of(context).headlineMedium.override(
-                  fontFamily: 'Roboto Condensed',
-                  fontSize: 20.0,
-                  fontWeight: FontWeight.bold,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-              Text(
-                'Encanador',
-                style: FlutterFlowTheme.of(context).bodyMedium.override(
-                  fontSize: 12.0,
-                  fontWeight: FontWeight.w500,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Prestador desde ',
-                    style: FlutterFlowTheme.of(context).bodyMedium,
-                  ),
-                  Text(
-                    dateTimeFormat("d/M/y", widget.user?.createdAt),
-                    style: FlutterFlowTheme.of(context).bodyMedium,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+        _buildProfileHeader(context, widget.user),
         Expanded(
-          child: Padding(
-            padding: EdgeInsets.all(16),
+          child: Container(
+            width: MediaQuery.sizeOf(context).width * 0.88,
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildProfileStatCard(context, '4.8', 'Avaliações', secondaryValue: '92 Avaliações'),
-                    _buildProfileStatCard(context, '156', 'Serviços'),
-                    _buildProfileStatCard(context, '12.5K', 'Ganhos'),
-                  ],
-                ),
-                SizedBox(height: 16),
-                _buildProfileOptionCard(
+                const SizedBox(height: 16.0),
+
+                // ÚNICA opção: Sair
+                _buildProfileOption(
                   context,
-                  'Modo Escuro',
-                  Icons.nights_stay,
-                  Color(0xFFA7BAFF),
-                  isSwitch: true,
-                ),
-                SizedBox(height: 16),
-                InkWell(
-                  onTap: () => context.pushNamed(EnderecosWidget.routeName),
-                  child: _buildProfileOptionCard(
-                    context,
-                    'Meus Endereços',
-                    Icons.add_home_work,
-                    Color(0xFFFFF1CD),
-                  ),
-                ),
-                SizedBox(height: 16),
-                InkWell(
+                  icon: Icons.login_sharp,
+                  iconColor: FlutterFlowTheme.of(context).primaryText,
+                  backgroundColor: const Color(0xFFFFB8B8),
+                  title: 'Sair',
                   onTap: () async {
-                    GoRouter.of(context).prepareAuthEvent();
-                    await authManager.signOut();
-                    GoRouter.of(context).clearRedirectLocation();
-                    context.goNamedAuth(LoginPageWidget.routeName, context.mounted);
+                    final confirmou = await _confirmarSaida(context);
+                    if (confirmou == true) {
+                      GoRouter.of(context).prepareAuthEvent();
+                      await authManager.signOut();
+                      GoRouter.of(context).clearRedirectLocation();
+                      if (context.mounted) {
+                        context.goNamedAuth(
+                          LoginPageWidget.routeName,
+                          context.mounted,
+                        );
+                      }
+                    }
                   },
-                  child: _buildProfileOptionCard(
-                    context,
-                    'Sair',
-                    Icons.login_sharp,
-                    Color(0xFFFFB8B8),
-                  ),
                 ),
               ],
             ),
@@ -136,102 +68,173 @@ class _ProfileTabWidgetState extends State<ProfileTabWidget> {
     );
   }
 
-  Widget _buildProfileStatCard(BuildContext context, String value, String label, {String? secondaryValue}) {
+  // ======= Header =======
+  Widget _buildProfileHeader(BuildContext context, UsuariosRow? user) {
     return Container(
-      width: MediaQuery.sizeOf(context).width * 0.28,
-      height: 85,
+      width: double.infinity,
+      height: MediaQuery.sizeOf(context).height * 0.2,
       decoration: BoxDecoration(
         color: FlutterFlowTheme.of(context).secondaryBackground,
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             blurRadius: 4.0,
             color: Color(0x33000000),
             offset: Offset(0.0, 2.0),
           ),
         ],
-        borderRadius: BorderRadius.circular(16.0),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            label == 'Ganhos' ? 'R\$ $value' : value,
-            style: FlutterFlowTheme.of(context).bodyMedium.override(
-              fontSize: 20.0,
-              fontWeight: FontWeight.bold,
-              fontStyle: FontStyle.italic,
+          Container(
+            width: MediaQuery.sizeOf(context).width * 0.18,
+            height: MediaQuery.sizeOf(context).width * 0.18,
+            clipBehavior: Clip.antiAlias,
+            decoration: const BoxDecoration(shape: BoxShape.circle),
+            child: Image.network(
+              'https://picsum.photos/seed/404/600',
+              fit: BoxFit.cover,
             ),
           ),
+          const SizedBox(height: 8.0),
           Text(
-            label,
-            style: FlutterFlowTheme.of(context).bodyMedium,
+            user?.nome ?? 'Usuário',
+            style: FlutterFlowTheme.of(context).headlineMedium.override(
+                  fontSize: 20.0,
+                  fontWeight: FontWeight.bold,
+                  fontStyle: FontStyle.italic,
+                ),
           ),
-          if (secondaryValue != null)
-            Text(
-              secondaryValue,
-              style: FlutterFlowTheme.of(context).bodyMedium,
-            ),
+          const SizedBox(height: 4.0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Prestador desde ',
+                style: FlutterFlowTheme.of(context).bodyMedium.override(
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.w500,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+              Text(
+                user?.createdAt != null
+                    ? dateTimeFormat("d/M/y", user!.createdAt)
+                    : 'N/A',
+                style: FlutterFlowTheme.of(context).bodyMedium.override(
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.w500,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildProfileOptionCard(BuildContext context, String text, IconData icon, Color iconBgColor, {bool isSwitch = false}) {
-    return Container(
-      width: double.infinity,
-      height: 60,
-      decoration: BoxDecoration(
-        color: FlutterFlowTheme.of(context).secondaryBackground,
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 4.0,
-            color: Color(0x33000000),
-            offset: Offset(0.0, 2.0),
-          ),
-        ],
-        borderRadius: BorderRadius.circular(16.0),
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 30,
-              decoration: BoxDecoration(
-                color: iconBgColor,
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              child: Icon(
-                icon,
-                color: FlutterFlowTheme.of(context).primaryText,
-                size: 20.0,
-              ),
+  // ======= Option Card =======
+  Widget _buildProfileOption(
+      BuildContext context, {
+        required IconData icon,
+        required Color iconColor,
+        required Color backgroundColor,
+        required String title,
+        Widget? trailing,
+        VoidCallback? onTap,
+      }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: MediaQuery.sizeOf(context).height * 0.08,
+        decoration: BoxDecoration(
+          color: FlutterFlowTheme.of(context).secondaryBackground,
+          boxShadow: const [
+            BoxShadow(
+              blurRadius: 4.0,
+              color: Color(0x33000000),
+              offset: Offset(0.0, 2.0),
             ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                text,
-                style: FlutterFlowTheme.of(context).bodyMedium.override(
-                  fontWeight: FontWeight.w600,
+          ],
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            children: [
+              Container(
+                width: MediaQuery.sizeOf(context).width * 0.1,
+                height: MediaQuery.sizeOf(context).height * 0.04,
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                child: Icon(icon, color: iconColor, size: 20.0),
+              ),
+              const SizedBox(width: 12.0),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      title,
+                      style: FlutterFlowTheme.of(context)
+                          .bodyMedium
+                          .override(fontWeight: FontWeight.w600),
+                    ),
+                    if (trailing != null) trailing,
+                  ],
                 ),
               ),
-            ),
-            if (isSwitch)
-              Switch.adaptive(
-                value: widget.switchValue ?? false,
-                onChanged: widget.onSwitchChanged,
-                activeColor: FlutterFlowTheme.of(context).primary,
-              )
-            else
-              Icon(
-                Icons.arrow_forward,
-                color: FlutterFlowTheme.of(context).primaryText,
-                size: 20.0,
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  // ======= Modal de confirmação =======
+  Future<bool?> _confirmarSaida(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Sair'),
+          content: const Text('Tem certeza que deseja sair?'),
+          actionsPadding: const EdgeInsets.only(right: 12, bottom: 8),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Não'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.primary,
+                foregroundColor: theme.primaryText,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Sim'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Widgets auxiliares que não serão mais utilizados
+  Widget _buildProfileStatCard(BuildContext context, String value, String label, {String? secondaryValue}) {
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildProfileOptionCard(BuildContext context, String text, IconData icon, Color iconBgColor, {bool isSwitch = false}) {
+    return const SizedBox.shrink();
   }
 }

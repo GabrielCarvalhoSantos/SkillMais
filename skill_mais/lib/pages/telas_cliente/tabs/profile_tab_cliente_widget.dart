@@ -28,20 +28,8 @@ class ProfileTabClienteWidget extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 16.0),
-                _buildProfileOption(
-                  context,
-                  icon: Icons.add_home_work,
-                  iconColor: FlutterFlowTheme.of(context).primaryText,
-                  backgroundColor: const Color(0xFFFFF1CD),
-                  title: 'Meus Endereços',
-                  onTap: () => context.pushNamed(EnderecosWidget.routeName),
-                  trailing: Icon(
-                    Icons.arrow_forward,
-                    color: FlutterFlowTheme.of(context).primaryText,
-                    size: 20.0,
-                  ),
-                ),
-                const SizedBox(height: 16.0),
+
+                // ÚNICA opção: Sair
                 _buildProfileOption(
                   context,
                   icon: Icons.login_sharp,
@@ -49,11 +37,18 @@ class ProfileTabClienteWidget extends StatelessWidget {
                   backgroundColor: const Color(0xFFFFB8B8),
                   title: 'Sair',
                   onTap: () async {
-                    GoRouter.of(context).prepareAuthEvent();
-                    await authManager.signOut();
-                    GoRouter.of(context).clearRedirectLocation();
-                    context.goNamedAuth(
-                        LoginPageWidget.routeName, context.mounted);
+                    final confirmou = await _confirmarSaida(context);
+                    if (confirmou == true) {
+                      GoRouter.of(context).prepareAuthEvent();
+                      await authManager.signOut();
+                      GoRouter.of(context).clearRedirectLocation();
+                      if (context.mounted) {
+                        context.goNamedAuth(
+                          LoginPageWidget.routeName,
+                          context.mounted,
+                        );
+                      }
+                    }
                   },
                 ),
               ],
@@ -64,6 +59,7 @@ class ProfileTabClienteWidget extends StatelessWidget {
     );
   }
 
+  // ======= Header =======
   Widget _buildProfileHeader(BuildContext context, UsuariosRow? user) {
     return Container(
       width: double.infinity,
@@ -129,15 +125,16 @@ class ProfileTabClienteWidget extends StatelessWidget {
     );
   }
 
+  // ======= Option Card =======
   Widget _buildProfileOption(
-    BuildContext context, {
-    required IconData icon,
-    required Color iconColor,
-    required Color backgroundColor,
-    required String title,
-    Widget? trailing,
-    VoidCallback? onTap,
-  }) {
+      BuildContext context, {
+        required IconData icon,
+        required Color iconColor,
+        required Color backgroundColor,
+        required String title,
+        Widget? trailing,
+        VoidCallback? onTap,
+      }) {
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -186,6 +183,40 @@ class ProfileTabClienteWidget extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  // ======= Modal de confirmação =======
+  Future<bool?> _confirmarSaida(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Sair'),
+          content: const Text('Tem certeza que deseja sair?'),
+          actionsPadding: const EdgeInsets.only(right: 12, bottom: 8),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Não'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.primary,
+                foregroundColor: theme.primaryText, // Corrigido aqui
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Sim'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

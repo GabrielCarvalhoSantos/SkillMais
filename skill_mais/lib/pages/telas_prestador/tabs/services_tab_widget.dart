@@ -79,9 +79,7 @@ class ServicesTabWidget extends StatelessWidget {
                     final service = services[index];
                     return _buildServiceCard(
                       context,
-                      service.titulo ?? 'Sem Título',
-                      service.descricao ?? 'Sem descrição',
-                      service.precoBase?.toString() ?? '0.0'
+                      service,
                     );
                   },
                 );
@@ -93,7 +91,7 @@ class ServicesTabWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildServiceCard(BuildContext context, String title, String description, String price) {
+  Widget _buildServiceCard(BuildContext context, ServicosRow service) {
     return Container(
       width: double.infinity,
       height: 120,
@@ -117,26 +115,28 @@ class ServicesTabWidget extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    title,
+                    service.titulo ?? 'Sem Título',
                     style: FlutterFlowTheme.of(context).bodyMedium.override(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.w800,
-                      fontStyle: FontStyle.italic,
-                    ),
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w800,
+                          fontStyle: FontStyle.italic,
+                        ),
                   ),
                 ),
                 FFButtonWidget(
-                  onPressed: () {},
+                  onPressed: () async {
+                    _showEditServiceModal(context, service);
+                  },
                   text: 'Editar',
                   options: FFButtonOptions(
                     height: 30,
                     padding: EdgeInsets.symmetric(horizontal: 8),
                     color: Color(0x00FFFFFF),
                     textStyle: FlutterFlowTheme.of(context).titleSmall.override(
-                      fontFamily: 'Inter Tight',
-                      color: FlutterFlowTheme.of(context).success,
-                      fontSize: 14.0,
-                    ),
+                          fontFamily: 'Inter Tight',
+                          color: FlutterFlowTheme.of(context).success,
+                          fontSize: 14.0,
+                        ),
                     elevation: 0.0,
                   ),
                 ),
@@ -144,23 +144,113 @@ class ServicesTabWidget extends StatelessWidget {
             ),
             SizedBox(height: 4),
             Text(
-              description,
+              service.descricao ?? 'Sem descrição',
               style: FlutterFlowTheme.of(context).bodyMedium,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             Spacer(),
             Text(
-              'R\$ $price',
+              'R\$ ${service.precoBase?.toString() ?? '0.0'}',
               style: FlutterFlowTheme.of(context).bodyMedium.override(
-                fontSize: 20.0,
-                fontWeight: FontWeight.bold,
-                fontStyle: FontStyle.italic,
-              ),
+                    fontSize: 20.0,
+                    fontWeight: FontWeight.bold,
+                    fontStyle: FontStyle.italic,
+                  ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  void _showEditServiceModal(BuildContext context, ServicosRow service) {
+    final theme = FlutterFlowTheme.of(context);
+    final titleController = TextEditingController(text: service.titulo);
+    final descriptionController = TextEditingController(text: service.descricao);
+    final priceController = TextEditingController(text: service.precoBase?.toString() ?? '0.0');
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.8,
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Editar Serviço',
+                  style: theme.headlineSmall.override(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 24),
+                Text('Título', style: theme.bodyMedium),
+                TextFormField(
+                  controller: titleController,
+                ),
+                SizedBox(height: 16),
+                Text('Descrição', style: theme.bodyMedium),
+                TextFormField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                ),
+                SizedBox(height: 16),
+                Text('Valor', style: theme.bodyMedium),
+                TextFormField(
+                  controller: priceController,
+                  keyboardType: TextInputType.number,
+                ),
+                SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('Cancelar'),
+                    ),
+                    SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          await Supabase.instance.client
+                              .from('servicos')
+                              .update({
+                                'titulo': titleController.text,
+                                'descricao': descriptionController.text,
+                                'preco_base': double.tryParse(priceController.text) ?? 0.0,
+                              })
+                              .eq('id', service.id);
+
+                          Navigator.of(context).pop();
+                          (context as Element).reassemble(); 
+
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Erro ao atualizar o serviço: $e')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.primary,
+                        foregroundColor: theme.primaryText,
+                      ),
+                      child: Text('Salvar'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
