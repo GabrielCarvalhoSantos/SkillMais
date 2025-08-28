@@ -3,10 +3,9 @@
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 class HomeTabWidget extends StatelessWidget {
   final UsuariosRow? user;
@@ -20,6 +19,9 @@ class HomeTabWidget extends StatelessWidget {
     required this.onRefresh,
   }) : super(key: key);
 
+  // ================= BUSCAS =================
+
+  /// Lista para a seção "Solicitações de Agendamento" (apenas pendentes)
   Future<List<Map<String, dynamic>>> _buscarSolicitacoesPendentes() async {
     final prestadorId = currentUserUid;
     if (prestadorId == null) return [];
@@ -31,46 +33,117 @@ class HomeTabWidget extends StatelessWidget {
           .eq('prestador_id', prestadorId);
 
       if (servicos.isEmpty) return [];
-
       final servicoIds = servicos.map((s) => s['id']).toList();
-      final agendamentos = await Supabase.instance.client
+
+      final ags = await Supabase.instance.client
           .from('agendamentos')
-          .select('id, contratante_id, servico_id, data_hora, status, observacoes')
+          .select(
+              'id, contratante_id, servico_id, data_hora, status, observacoes')
           .eq('status', 'pendente')
           .inFilter('servico_id', servicoIds)
-          .order('created_at', ascending: false);
+          .order('data_hora', ascending: true);
 
-      List<Map<String, dynamic>> resultado = [];
-      for (var agendamento in agendamentos) {
+      final List<Map<String, dynamic>> out = [];
+      for (final ag in ags) {
         final cliente = await Supabase.instance.client
             .from('usuarios')
             .select('nome, telefone')
-            .eq('user_id', agendamento['contratante_id'])
+            .eq('user_id', ag['contratante_id'])
             .maybeSingle();
 
-        final servico = servicos.firstWhere((s) => s['id'] == agendamento['servico_id']);
+        final end = await Supabase.instance.client
+            .from('enderecos')
+            .select('logradouro, numero, bairro, cidade, estado')
+            .eq('usuario_id', ag['contratante_id'])
+            .maybeSingle();
 
-        resultado.add({
-          ...agendamento,
+        final serv = servicos.firstWhere(
+          (s) => s['id'] == ag['servico_id'],
+          orElse: () => {'titulo': 'Serviço', 'preco_base': 0},
+        );
+
+        out.add({
+          ...ag,
           'contratante_nome': cliente?['nome'] ?? 'Cliente',
-          'contratante_telefone': cliente?['telefone'] ?? '',
-          'servico_titulo': servico['titulo'] ?? 'Serviço',
-          'servico_preco': servico['preco_base'] ?? 0,
+          'telefone': cliente?['telefone'],
+          'logradouro': end?['logradouro'],
+          'numero': end?['numero'],
+          'bairro': end?['bairro'],
+          'cidade': end?['cidade'],
+          'estado': end?['estado'],
+          'servico_titulo': serv['titulo'] ?? 'Serviço',
+          // (5) preço SEMPRE do serviço escolhido
+          'servico_preco': (serv['preco_base'] as num?)?.toDouble() ?? 0.0,
         });
       }
-      return resultado;
+      return out;
     } catch (e) {
-      print('Erro ao buscar solicitações: $e');
+      print('Erro _buscarSolicitacoesPendentes: $e');
       return [];
     }
   }
+
+  /// (2) KPI Concluídos = somente status 'concluido'
+  Future<int> _contarConcluidos() async {
+    final prestadorId = currentUserUid;
+    if (prestadorId == null) return 0;
+
+    try {
+      final servicos = await Supabase.instance.client
+          .from('servicos')
+          .select('id')
+          .eq('prestador_id', prestadorId);
+      if (servicos.isEmpty) return 0;
+
+      final ids = servicos.map((s) => s['id']).toList();
+
+      final rows = await Supabase.instance.client
+          .from('agendamentos')
+          .select('id')
+          .eq('status', 'concluido')
+          .inFilter('servico_id', ids);
+
+      return rows.length;
+    } catch (e) {
+      print('Erro _contarConcluidos: $e');
+      return 0;
+    }
+  }
+
+  /// (2) KPI Pendentes = 'pendente' + 'em_andamento' (não conta cancelado/confirmado)
+  Future<int> _contarPendentes() async {
+    final prestadorId = currentUserUid;
+    if (prestadorId == null) return 0;
+
+    try {
+      final servicos = await Supabase.instance.client
+          .from('servicos')
+          .select('id')
+          .eq('prestador_id', prestadorId);
+      if (servicos.isEmpty) return 0;
+
+      final ids = servicos.map((s) => s['id']).toList();
+
+      final rows = await Supabase.instance.client
+          .from('agendamentos')
+          .select('id, status')
+          .inFilter('servico_id', ids)
+          .inFilter('status', ['pendente', 'em_andamento']);
+
+      return rows.length;
+    } catch (e) {
+      print('Erro _contarPendentes: $e');
+      return 0;
+    }
+  }
+
+  // ================= AÇÕES =================
 
   Future<void> _aceitarAgendamento(String id) async {
     try {
       await Supabase.instance.client
           .from('agendamentos')
-          .update({'status': 'confirmado'})
-          .eq('id', id);
+          .update({'status': 'confirmado'}).eq('id', id);
       onShowMessage('Agendamento aceito!', Colors.green);
       onRefresh();
     } catch (e) {
@@ -82,8 +155,7 @@ class HomeTabWidget extends StatelessWidget {
     try {
       await Supabase.instance.client
           .from('agendamentos')
-          .update({'status': 'recusado'})
-          .eq('id', id);
+          .update({'status': 'cancelado'}).eq('id', id);
       onShowMessage('Agendamento recusado', Colors.orange);
       onRefresh();
     } catch (e) {
@@ -91,116 +163,204 @@ class HomeTabWidget extends StatelessWidget {
     }
   }
 
-  String _formatarDataHora(String? dataHoraString) {
-    if (dataHoraString == null) return '17/08 • 10:00';
+  // ================= HELPERS =================
 
+  String _formatarDataHora(dynamic v) {
+    if (v == null) return '—';
     try {
-      final dataHora = DateTime.parse(dataHoraString);
-      final dia = dataHora.day.toString().padLeft(2, '0');
-      final mes = dataHora.month.toString().padLeft(2, '0');
-      final hora = dataHora.hour.toString().padLeft(2, '0');
-      final minuto = dataHora.minute.toString().padLeft(2, '0');
-      return '$dia/$mes • $hora:$minuto';
-    } catch (e) {
-      return '17/08 • 10:00';
+      final dt = DateTime.parse(v.toString());
+      return DateFormat('dd/MM • HH:mm', 'pt_BR').format(dt);
+    } catch (_) {
+      return '—';
     }
   }
+
+  String _joinNotEmpty(List<String?> parts, {String sep = ' • '}) {
+    return parts
+        .where((p) => p != null && p!.trim().isNotEmpty)
+        .map((p) => p!.trim())
+        .join(sep);
+  }
+
+  String _formatarValor(num v) => 'R\$ ${v.toStringAsFixed(2)}';
+
+  Widget _metricCard(
+    BuildContext context, {
+    required Color chipBg,
+    required Color chipFg,
+    required Widget count,
+    required String big, // (2) "Concluídos"/"Pendentes" GRANDE
+    required String small, // (2) "Agendamentos" PEQUENO
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: FlutterFlowTheme.of(context).secondaryBackground,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x14000000), blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: chipBg,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: DefaultTextStyle(
+                style: FlutterFlowTheme.of(context)
+                    .titleLarge
+                    .override(color: chipFg, fontWeight: FontWeight.w800),
+                child: count,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // (2) pequeno
+              Text(
+                small,
+                style: FlutterFlowTheme.of(context).bodySmall.override(
+                      color: FlutterFlowTheme.of(context).secondaryText,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              // (2) grande
+              Text(
+                big,
+                style: FlutterFlowTheme.of(context).titleMedium.override(
+                      color: FlutterFlowTheme.of(context).primaryText,
+                      fontWeight: FontWeight.w800,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================= UI =================
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         child: Column(
-          mainAxisSize: MainAxisSize.max,
           children: [
-            // Header
+            // (1) CARD "Olá / Bem Vindo(a)!" igual ao mock
             Container(
-              height: 100.0,
+              width: double.infinity,
+              padding: const EdgeInsets.all(29),
               decoration: BoxDecoration(
                 color: FlutterFlowTheme.of(context).secondaryBackground,
-                borderRadius: BorderRadius.circular(20.0),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 2)),
+                ],
               ),
-              child: Padding(
-                padding: EdgeInsetsDirectional.fromSTEB(10.0, 0.0, 10.0, 0.0),
-                child: Row(
-                  children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Olá, ${user?.nome ?? 'TestePrestador'}!',
-                          style: FlutterFlowTheme.of(context).bodyMedium,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Olá, ${user?.nome ?? 'TestePrestador'}!',
+                    style: FlutterFlowTheme.of(context).bodyMedium,
+                  ),
+                  Text(
+                    'Bem Vindo(a)!',
+                    style: FlutterFlowTheme.of(context).bodyMedium.override(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic,
                         ),
-                        Text(
-                          'Bem Vindo(a)!',
-                          style: FlutterFlowTheme.of(context).bodyMedium.override(
-                                fontFamily: 'Inter',
-                                fontSize: 22.0,
-                                fontWeight: FontWeight.bold,
-                                fontStyle: FontStyle.italic,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 
-            SizedBox(height: 16.0),
+            const SizedBox(height: 16),
 
-            // Cards de estatísticas
-            _buildStatsCard(context, '3', 'Agendamentos\nConcluídos', Color(0xFFBCD4FF)),
-            SizedBox(height: 16.0),
-            _buildStatsCard(context, '5', 'Agendamentos\nPendentes', Color(0xFFD1FFCE)),
+            // (2) CARDS DE STATUS (texto invertido como pedido)
+            _metricCard(
+              context,
+              chipBg: const Color(0xFFD7E6FF),
+              chipFg: const Color(0xFF1976D2),
+              count: FutureBuilder<int>(
+                future: _contarConcluidos(),
+                builder: (_, s) => Text('${s.data ?? 0}'),
+              ),
+              big: 'Concluídos',
+              small: 'Agendamentos',
+            ),
+            _metricCard(
+              context,
+              chipBg: const Color(0xFFE5F7E7),
+              chipFg: const Color(0xFF2E7D32),
+              count: FutureBuilder<int>(
+                future: _contarPendentes(),
+                builder: (_, s) => Text('${s.data ?? 0}'),
+              ),
+              big: 'Pendentes',
+              small: 'Agendamentos',
+            ),
 
-            SizedBox(height: 24.0),
+            const SizedBox(height: 8),
 
-            // Título das solicitações
+            // Título
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Solicitações de Agendamento',
                 style: FlutterFlowTheme.of(context).headlineMedium.override(
-                      fontFamily: 'Roboto Condensed',
-                      fontSize: 20.0,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       fontStyle: FontStyle.italic,
                     ),
               ),
             ),
 
-            SizedBox(height: 16.0),
+            const SizedBox(height: 12),
 
-            // Lista de solicitações dinâmicas
+            // LISTA
             FutureBuilder<List<Map<String, dynamic>>>(
               future: _buscarSolicitacoesPendentes(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Container(
+                  return SizedBox(
                     height: 200,
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          FlutterFlowTheme.of(context).primary,
+                        ),
+                      ),
+                    ),
                   );
                 }
 
-                final solicitacoes = snapshot.data ?? [];
-                if (solicitacoes.isEmpty) {
-                  return Container(
+                final itens = snapshot.data ?? [];
+                if (itens.isEmpty) {
+                  return SizedBox(
                     height: 200,
                     child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.inbox, size: 64,
-                              color: FlutterFlowTheme.of(context).secondaryText),
-                          SizedBox(height: 16),
-                          Text('Nenhuma solicitação pendente',
-                              style: FlutterFlowTheme.of(context).bodyLarge.override(
-                                    color: FlutterFlowTheme.of(context).secondaryText,
-                                  )),
-                        ],
+                      child: Text(
+                        'Nenhuma solicitação pendente',
+                        style: FlutterFlowTheme.of(context).bodyLarge.override(
+                              color: FlutterFlowTheme.of(context).secondaryText,
+                            ),
                       ),
                     ),
                   );
@@ -208,19 +368,193 @@ class HomeTabWidget extends StatelessWidget {
 
                 return ListView.separated(
                   shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: solicitacoes.length,
-                  separatorBuilder: (_, __) => SizedBox(height: 16.0),
-                  itemBuilder: (context, index) {
-                    final item = solicitacoes[index];
-                    return _buildAppointmentRequestCard(
-                      context,
-                      item['id'].toString(),
-                      item['contratante_nome'] ?? 'Cliente',
-                      _formatarDataHora(item['data_hora']),
-                      item['servico_titulo'] ?? 'Serviço',
-                      'Rua das Flores, 127', // Mock de endereço
-                      '80', // Mock de preço
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: itens.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (_, i) {
+                    final it = itens[i];
+
+                    // (4) endereço completo com UF
+                    final enderecoLinha = _joinNotEmpty([
+                      it['logradouro'],
+                      it['numero'],
+                    ], sep: ', ');
+                    final complementoLinha = _joinNotEmpty([
+                      it['bairro'],
+                      _joinNotEmpty([it['cidade'], it['estado']], sep: ', '),
+                    ]);
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: FlutterFlowTheme.of(context).secondaryBackground,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Color(0x33000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            Row(
+                              // (3) centraliza avatar na linha
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 3,
+                                  height: 80,
+                                  color: const Color(0xFF6F35A5),
+                                ),
+                                const SizedBox(width: 10),
+                                // avatar
+                                Align(
+                                  alignment: Alignment.center,
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    clipBehavior: Clip.antiAlias,
+                                    decoration: const BoxDecoration(
+                                        shape: BoxShape.circle),
+                                    child: Image.network(
+                                      'https://picsum.photos/seed/${it['contratante_id']}/150',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Icon(
+                                        Icons.person,
+                                        size: 28,
+                                        color: FlutterFlowTheme.of(context)
+                                            .secondaryText,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                // infos
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        it['contratante_nome'] ?? 'Cliente',
+                                        style: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .override(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                      Text(
+                                        _formatarDataHora(it['data_hora']),
+                                        style: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .override(
+                                              color:
+                                                  FlutterFlowTheme.of(context)
+                                                      .secondaryText,
+                                              fontSize: 12,
+                                            ),
+                                      ),
+                                      Text(
+                                        it['servico_titulo'] ?? 'Serviço',
+                                        style: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .override(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                      ),
+                                      // (4) endereço + UF
+                                      Text(
+                                        _joinNotEmpty(
+                                          [enderecoLinha, complementoLinha],
+                                          sep: ' • ',
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .override(
+                                              color:
+                                                  FlutterFlowTheme.of(context)
+                                                      .secondaryText,
+                                              fontSize: 12,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // preço à direita (5)
+                                Text(
+                                  _formatarValor(it['servico_preco'] ?? 0.0),
+                                  style: FlutterFlowTheme.of(context)
+                                      .bodyMedium
+                                      .override(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            // Ações
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => _aceitarAgendamento(
+                                        it['id'].toString()),
+                                    child: SizedBox(
+                                      height: 36,
+                                      child: Center(
+                                        child: Text(
+                                          'Aceitar',
+                                          style: FlutterFlowTheme.of(context)
+                                              .bodyMedium
+                                              .override(
+                                                color: const Color(0xFF00C853),
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  width: 1,
+                                  height: 20,
+                                  color: FlutterFlowTheme.of(context)
+                                      .secondaryText
+                                      .withOpacity(0.3),
+                                ),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => _recusarAgendamento(
+                                        it['id'].toString()),
+                                    child: SizedBox(
+                                      height: 36,
+                                      child: Center(
+                                        child: Text(
+                                          'Recusar',
+                                          style: FlutterFlowTheme.of(context)
+                                              .bodyMedium
+                                              .override(
+                                                color: const Color(0xFFFF5722),
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     );
                   },
                 );
@@ -231,149 +565,4 @@ class HomeTabWidget extends StatelessWidget {
       ),
     );
   }
-
-  // --- Widgets Auxiliares ---
-  Widget _buildStatsCard(BuildContext context, String value, String label, Color color) {
-    return Container(
-      width: double.infinity,
-      height: 100.0,
-      decoration: BoxDecoration(
-        color: FlutterFlowTheme.of(context).secondaryBackground,
-        borderRadius: BorderRadius.circular(16.0),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(12.0),
-        child: Row(
-          children: [
-            Container(
-              width: 60.0,
-              height: 60.0,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: Center(
-                child: Text(value, style: FlutterFlowTheme.of(context).bodyMedium.override(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      fontStyle: FontStyle.italic,
-                    )),
-              ),
-            ),
-            SizedBox(width: 10.0),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: FlutterFlowTheme.of(context).bodyMedium.override(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      )),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppointmentRequestCard(
-      BuildContext context, String id, String name, String dateTime, String service, String address, String price) {
-    return Container(
-      decoration: BoxDecoration(
-        color: FlutterFlowTheme.of(context).secondaryBackground,
-        borderRadius: BorderRadius.circular(16.0),
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 4.0,
-            color: Color(0x33000000),
-            offset: Offset(0.0, 2.0),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center, // Alinhamento central vertical para a linha principal
-              children: [
-                Container(
-                  width: 3.0,
-                  height: 80.0,
-                  color: FlutterFlowTheme.of(context).accent1,
-                ),
-                SizedBox(width: 10.0),
-                Container(
-                  width: 40.0,
-                  height: 40.0,
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(shape: BoxShape.circle),
-                  child: Image.network('https://picsum.photos/seed/835/600', fit: BoxFit.cover),
-                ),
-                SizedBox(width: 10.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center, // Centraliza o texto verticalmente
-                    children: [
-                      Text(name, style: FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.bold)),
-                      Row(
-                        children: [
-                          Text(dateTime, style: FlutterFlowTheme.of(context).bodyMedium),
-                        ],
-                      ),
-                      SizedBox(height: 5.0),
-                      Text(service, style: FlutterFlowTheme.of(context).bodyMedium),
-                      Text('$address • 2,1 Km', style: FlutterFlowTheme.of(context).bodyMedium),
-                    ],
-                  ),
-                ),
-                Text(
-                  'R\$ $price',
-                  style: FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            SizedBox(height: 10.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                SizedBox(width: 80.0),
-                FFButtonWidget(
-                  onPressed: () {},
-                  text: 'Aceitar',
-                  options: FFButtonOptions(
-                    height: 30.0,
-                    padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
-                    color: Color(0x00FFFFFF),
-                    textStyle: FlutterFlowTheme.of(context).titleSmall.override(color: FlutterFlowTheme.of(context).success, fontSize: 14.0),
-                    elevation: 0.0,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                ),
-                SizedBox(width: 80.0),
-                FFButtonWidget(
-                  onPressed: () {},
-                  text: 'Recusar',
-                  options: FFButtonOptions(
-                    height: 30.0,
-                    padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
-                    color: Color(0x00FFFFFF),
-                    textStyle: FlutterFlowTheme.of(context).titleSmall.override(color: FlutterFlowTheme.of(context).error, fontSize: 14.0),
-                    elevation: 0.0,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
-
-//Condigo Correto
