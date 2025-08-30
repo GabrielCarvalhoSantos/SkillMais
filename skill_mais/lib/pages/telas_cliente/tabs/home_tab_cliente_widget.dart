@@ -3,8 +3,6 @@
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import '/index.dart';
 import 'package:flutter/material.dart';
 
 class HomeTabClienteWidget extends StatelessWidget {
@@ -171,7 +169,6 @@ class HomeTabClienteWidget extends StatelessWidget {
   Future<int> _buscarQuantidadeAgendamentosHoje() async {
     try {
       final userId = currentUserUid;
-      if (userId == null) return 0;
 
       final hoje = DateTime.now();
       final inicioDoDia = DateTime(hoje.year, hoje.month, hoje.day);

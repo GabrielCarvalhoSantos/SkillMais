@@ -5,7 +5,6 @@ import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_drop_down.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
 import '/flutter_flow/form_field_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -44,10 +43,6 @@ class _AgendaTabPrestadorWidgetState extends State<AgendaTabPrestadorWidget> {
   Future<List<Map<String, dynamic>>> _buscarAgendamentosPrestador() async {
     try {
       final prestadorId = currentUserUid;
-      if (prestadorId == null) {
-        print('Prestador não logado');
-        return [];
-      }
 
       print('Iniciando busca para prestador: $prestadorId');
 

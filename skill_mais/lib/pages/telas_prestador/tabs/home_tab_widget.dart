@@ -3,7 +3,6 @@
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -24,7 +23,6 @@ class HomeTabWidget extends StatelessWidget {
   /// Lista para a seção "Solicitações de Agendamento" (apenas pendentes)
   Future<List<Map<String, dynamic>>> _buscarSolicitacoesPendentes() async {
     final prestadorId = currentUserUid;
-    if (prestadorId == null) return [];
 
     try {
       final servicos = await Supabase.instance.client
@@ -86,7 +84,6 @@ class HomeTabWidget extends StatelessWidget {
   /// (2) KPI Concluídos = somente status 'concluido'
   Future<int> _contarConcluidos() async {
     final prestadorId = currentUserUid;
-    if (prestadorId == null) return 0;
 
     try {
       final servicos = await Supabase.instance.client
@@ -113,7 +110,6 @@ class HomeTabWidget extends StatelessWidget {
   /// (2) KPI Pendentes = 'pendente' + 'em_andamento' (não conta cancelado/confirmado)
   Future<int> _contarPendentes() async {
     final prestadorId = currentUserUid;
-    if (prestadorId == null) return 0;
 
     try {
       final servicos = await Supabase.instance.client
@@ -177,7 +173,7 @@ class HomeTabWidget extends StatelessWidget {
 
   String _joinNotEmpty(List<String?> parts, {String sep = ' • '}) {
     return parts
-        .where((p) => p != null && p!.trim().isNotEmpty)
+        .where((p) => p != null && p.trim().isNotEmpty)
         .map((p) => p!.trim())
         .join(sep);
   }

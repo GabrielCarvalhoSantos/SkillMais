@@ -5,7 +5,6 @@ import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'telas_prestador_model.dart';
 import 'tabs/home_tab_widget.dart';
 import 'tabs/agenda_tab_widget.dart';

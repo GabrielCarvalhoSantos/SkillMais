@@ -1,10 +1,7 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:from_css_color/from_css_color.dart';
-
 import '/backend/supabase/supabase.dart';
-
 import '../../flutter_flow/lat_lng.dart';
 import '../../flutter_flow/place.dart';
 import '../../flutter_flow/uploaded_file.dart';
@@ -75,9 +72,7 @@ String? serializeParam(
       case ParamType.SupabaseRow:
         return json.encode((param as SupabaseDataRow).data);
 
-      default:
-        data = null;
-    }
+      }
     return data;
   } catch (e) {
     print('Error serializing parameter: $e');
@@ -236,9 +231,7 @@ dynamic deserializeParam<T>(
             return null;
         }
 
-      default:
-        return null;
-    }
+      }
   } catch (e) {
     print('Error deserializing parameter: $e');
     return null;

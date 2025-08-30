@@ -51,10 +51,6 @@ class _AgendaTabClienteWidgetState extends State<AgendaTabClienteWidget> {
   // Buscar APENAS os agendamentos do cliente logado
   Future<List<Map<String, dynamic>>> _buscarAgendamentosCliente() async {
     final clienteId = currentUserUid;
-    if (clienteId == null) {
-      debugPrint('Cliente ID é null - usuário não está logado');
-      return [];
-    }
 
     try {
       final agendamentos = await Supabase.instance.client
@@ -376,15 +372,6 @@ class _AgendaTabClienteWidgetState extends State<AgendaTabClienteWidget> {
                         }
 
                         final clienteId = currentUserUid;
-                        if (clienteId == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Erro: usuário não está logado.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
 
                         final String? prestadorId = agendamento['prestador_id'];
                         final String? servicoId = agendamento['servico_id'];

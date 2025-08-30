@@ -169,10 +169,6 @@ class _AgendarServicoWidgetState extends State<AgendarServicoWidget> {
 
       // Obter usuário logado
       final currentUser = currentUserUid;
-      if (currentUser == null) {
-        _mostrarErro('Usuário não está logado. Faça login para continuar.');
-        return;
-      }
 
       // Mostrar loading com context válido
       if (!mounted) return;

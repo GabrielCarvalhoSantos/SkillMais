@@ -228,13 +228,4 @@ class _ProfileTabWidgetState extends State<ProfileTabWidget> {
       },
     );
   }
-
-  // Widgets auxiliares que não serão mais utilizados
-  Widget _buildProfileStatCard(BuildContext context, String value, String label, {String? secondaryValue}) {
-    return const SizedBox.shrink();
-  }
-
-  Widget _buildProfileOptionCard(BuildContext context, String text, IconData icon, Color iconBgColor, {bool isSwitch = false}) {
-    return const SizedBox.shrink();
-  }
 }

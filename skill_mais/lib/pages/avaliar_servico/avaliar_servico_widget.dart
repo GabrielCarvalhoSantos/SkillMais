@@ -1,5 +1,3 @@
-// lib/pages/avaliar_servico/avaliar_servico_widget.dart
-
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
@@ -7,7 +5,6 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AvaliarServicoWidget extends StatefulWidget {
   // Parâmetros recebidos da navegação
@@ -122,10 +119,6 @@ class _AvaliarServicoWidgetState extends State<AvaliarServicoWidget> {
 
     try {
       final clienteId = currentUserUid;
-      if (clienteId == null) {
-        _mostrarSnackBar('Erro: usuário não está logado', Colors.red);
-        return;
-      }
 
       print('Tentando salvar avaliação:');
       print('- contratante_id: $clienteId');

@@ -115,7 +115,7 @@ class ServicesTabWidget extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    service.titulo ?? 'Sem Título',
+                    service.titulo,
                     style: FlutterFlowTheme.of(context).bodyMedium.override(
                           fontSize: 16.0,
                           fontWeight: FontWeight.w800,
@@ -151,7 +151,7 @@ class ServicesTabWidget extends StatelessWidget {
             ),
             Spacer(),
             Text(
-              'R\$ ${service.precoBase?.toString() ?? '0.0'}',
+              'R\$ ${service.precoBase.toString()}',
               style: FlutterFlowTheme.of(context).bodyMedium.override(
                     fontSize: 20.0,
                     fontWeight: FontWeight.bold,
@@ -168,7 +168,7 @@ class ServicesTabWidget extends StatelessWidget {
     final theme = FlutterFlowTheme.of(context);
     final titleController = TextEditingController(text: service.titulo);
     final descriptionController = TextEditingController(text: service.descricao);
-    final priceController = TextEditingController(text: service.precoBase?.toString() ?? '0.0');
+    final priceController = TextEditingController(text: service.precoBase.toString());
 
     showDialog(
       context: context,
@@ -230,6 +230,7 @@ class ServicesTabWidget extends StatelessWidget {
                               .eq('id', service.id);
 
                           Navigator.of(context).pop();
+                          // ignore: invalid_use_of_protected_member
                           (context as Element).reassemble(); 
 
                         } catch (e) {

@@ -12,10 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
-import 'package:provider/provider.dart';
 import 'cadastro_prestador_model.dart';
 export 'cadastro_prestador_model.dart';
-import '/custom_code/actions/categoria_actions.dart'; //modificação para ver se categoria id funciona
 import '/custom_code/actions/prestador_actions.dart'; //modificação para ver se categoria id funciona
 
 class CadastroPrestadorWidget extends StatefulWidget {
